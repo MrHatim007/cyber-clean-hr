@@ -53,10 +53,21 @@ const App: React.FC = () => {
   const t = translations[config.language];
   const isRTL = config.language === 'ar';
 
-  // Load data on start
+  // Load data on start and setup hash router listener
   useEffect(() => {
     loadData();
-  }, []);
+
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#/', '');
+      const allowed = ['dashboard', 'management', 'leaves', 'archive', 'settings'];
+      if (allowed.includes(hash)) {
+        setActiveTab(hash);
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, [loadData, setActiveTab]);
 
   // Clear pagination on tab switch or search
   useEffect(() => {

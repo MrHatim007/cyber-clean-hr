@@ -13,6 +13,7 @@ interface AppState {
   loading: boolean;
   notification: string | null;
   previewFile: { url: string; name: string } | null;
+  highlightedEmployeeId: string | null;
   
   // Actions
   loadData: () => Promise<void>;
@@ -35,12 +36,20 @@ interface AppState {
   showNotification: (msg: string) => void;
   importBackup: (backup: BackupType) => Promise<void>;
   setPreviewFile: (file: { url: string; name: string } | null) => void;
+  setHighlightedEmployeeId: (id: string | null) => void;
 }
+
+const getInitialTab = (): string => {
+  if (typeof window === 'undefined') return 'dashboard';
+  const hash = window.location.hash.replace('#/', '');
+  const allowed = ['dashboard', 'management', 'leaves', 'archive', 'settings'];
+  return allowed.includes(hash) ? hash : 'dashboard';
+};
 
 export const useAppStore = create<AppState>((set, get) => ({
   employees: [],
   config: INITIAL_CONFIG,
-  activeTab: 'dashboard',
+  activeTab: getInitialTab(),
   searchQuery: '',
   filterStatus: 'all',
   filterType: 'all',
@@ -48,8 +57,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   loading: true,
   notification: null,
   previewFile: null,
+  highlightedEmployeeId: null,
 
   setPreviewFile: (file) => set({ previewFile: file }),
+  setHighlightedEmployeeId: (id) => set({ highlightedEmployeeId: id }),
 
   loadData: async () => {
     set({ loading: true });
@@ -189,7 +200,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   setFilterStatus: (status) => set({ filterStatus: status }),
   setFilterType: (type) => set({ filterType: type }),
   setFilterDept: (dept) => set({ filterDept: dept }),
-  setActiveTab: (tab) => set({ activeTab: tab }),
+  setActiveTab: (tab) => {
+    set({ activeTab: tab });
+    if (typeof window !== 'undefined') {
+      window.location.hash = '#/' + tab;
+    }
+  },
 
   toggleLanguage: async () => {
     const nextLang = (get().config.language === 'ar' ? 'en' : 'ar') as 'ar' | 'en';

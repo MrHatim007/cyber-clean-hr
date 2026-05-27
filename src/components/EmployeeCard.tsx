@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useEffect } from 'react';
 import type { EmployeeType } from '../utils/schemas';
 import { useAppStore } from '../store/store';
 import { translations } from '../utils/translations';
@@ -10,7 +10,16 @@ interface EmployeeCardProps {
 }
 
 export const EmployeeCard: React.FC<EmployeeCardProps> = ({ employee, onEdit }) => {
-  const { config, activeTab, deleteEmployee, archiveEmployee, restoreEmployee, setPreviewFile } = useAppStore();
+  const {
+    config,
+    activeTab,
+    deleteEmployee,
+    archiveEmployee,
+    restoreEmployee,
+    setPreviewFile,
+    highlightedEmployeeId,
+    setHighlightedEmployeeId,
+  } = useAppStore();
   
   const t = translations[config.language];
   const isRTL = config.language === 'ar';
@@ -18,6 +27,22 @@ export const EmployeeCard: React.FC<EmployeeCardProps> = ({ employee, onEdit }) 
   const vacation = useMemo(() => {
     return calculateVacationBalance(employee);
   }, [employee]);
+
+  const cardRef = useRef<HTMLDivElement>(null);
+  const isHighlighted = highlightedEmployeeId === employee.id;
+
+  useEffect(() => {
+    if (isHighlighted) {
+      // Smooth scroll the card into view
+      cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      
+      // Auto-clear highlight in store after 3 seconds (duration of CSS animation)
+      const timer = setTimeout(() => {
+        setHighlightedEmployeeId(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [isHighlighted, employee.id, setHighlightedEmployeeId]);
 
   const handleDelete = () => {
     if (window.confirm(t.deleteConfirm)) {
@@ -38,7 +63,10 @@ export const EmployeeCard: React.FC<EmployeeCardProps> = ({ employee, onEdit }) 
   };
 
   return (
-    <div className="glass-panel p-8 rounded-[3rem] hover:bg-white/[0.04] transition-all duration-300 flex flex-col justify-between shadow-xl">
+    <div
+      ref={cardRef}
+      className={`glass-panel p-8 rounded-[3rem] hover:bg-white/[0.04] transition-all duration-300 flex flex-col justify-between shadow-xl ${isHighlighted ? 'animate-flash-glow' : ''}`}
+    >
       <div>
         {/* Top Header Card Info */}
         <div className="flex justify-between items-start mb-6 gap-2">
