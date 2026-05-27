@@ -62,7 +62,7 @@ export const EmployeeCard: React.FC<EmployeeCardProps> = ({ employee, onEdit }) 
   return (
     <div
       ref={cardRef}
-      className={`glass-panel p-8 rounded-[3rem] hover:bg-white/[0.04] transition-all duration-300 flex flex-col justify-between shadow-xl ${isHighlighted ? 'animate-flash-glow' : ''}`}
+      className={`glass-panel p-8 rounded-[3rem] hover:bg-white/[0.04] transition-colors duration-300 flex flex-col justify-between shadow-xl ${isHighlighted ? 'animate-flash-glow' : ''}`}
     >
       <div>
         {/* Top Header Card Info */}

@@ -47,7 +47,8 @@ const App: React.FC = () => {
   const [leaveNotes, setLeaveNotes] = useState('');
 
   // Pagination for Employee list
-  const [visibleEmployeesCount, setVisibleEmployeesCount] = useState(12);
+  const [visibleActiveCount, setVisibleActiveCount] = useState(12);
+  const [visibleArchivedCount, setVisibleArchivedCount] = useState(12);
 
   const t = translations[config.language];
   const isRTL = config.language === 'ar';
@@ -70,7 +71,8 @@ const App: React.FC = () => {
 
   // Clear pagination on tab switch or search
   useEffect(() => {
-    setVisibleEmployeesCount(12);
+    setVisibleActiveCount(12);
+    setVisibleArchivedCount(12);
   }, [activeTab, searchQuery, filterStatus, filterType, filterDept]);
 
 
@@ -122,11 +124,10 @@ const App: React.FC = () => {
     return list.sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
   }, [employees]);
 
-  // Filtered employees for Management and Archive lists
-  const filteredEmployees = useMemo(() => {
+  // Filtered active employees
+  const filteredActiveEmployees = useMemo(() => {
     return employees.filter(emp => {
-      const isLookingForArchived = activeTab === 'archive';
-      if (emp.isArchived !== isLookingForArchived) return false;
+      if (emp.isArchived) return false;
 
       const matchesSearch =
         emp.employeeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -149,17 +150,49 @@ const App: React.FC = () => {
 
       return matchesSearch && matchesDept && (!activeDocFiltering || matchesDocFilters);
     });
-  }, [employees, searchQuery, filterStatus, filterType, filterDept, activeTab, config.threshold]);
+  }, [employees, searchQuery, filterStatus, filterType, filterDept, config.threshold]);
+
+  // Filtered archived employees
+  const filteredArchivedEmployees = useMemo(() => {
+    return employees.filter(emp => {
+      if (!emp.isArchived) return false;
+
+      const matchesSearch =
+        emp.employeeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        emp.employeeId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        emp.documents.some(d => d.specificDocNumber.toLowerCase().includes(searchQuery.toLowerCase()));
+
+      const matchesDept = filterDept === 'all' || emp.department === filterDept;
+
+      const matchesDocFilters = emp.documents.some(d => {
+        const status = getDocStatus(d.expiryDate, config.threshold);
+        const matchesStatus = filterStatus === 'all' || status === filterStatus;
+        const matchesType = filterType === 'all' || d.docType === filterType;
+        return matchesStatus && matchesType;
+      });
+
+      const hasDocs = emp.documents.length > 0;
+      const activeDocFiltering = filterStatus !== 'all' || filterType !== 'all';
+
+      if (activeDocFiltering && !hasDocs) return false;
+
+      return matchesSearch && matchesDept && (!activeDocFiltering || matchesDocFilters);
+    });
+  }, [employees, searchQuery, filterStatus, filterType, filterDept, config.threshold]);
 
   // Make sure the highlighted employee is within the visible paginated slice
   useEffect(() => {
     if (highlightedEmployeeId) {
-      const idx = filteredEmployees.findIndex(emp => emp.id === highlightedEmployeeId);
-      if (idx !== -1 && idx >= visibleEmployeesCount) {
-        setVisibleEmployeesCount(idx + 1);
+      const activeIdx = filteredActiveEmployees.findIndex(emp => emp.id === highlightedEmployeeId);
+      if (activeIdx !== -1 && activeIdx >= visibleActiveCount) {
+        setVisibleActiveCount(activeIdx + 1);
+      }
+      const archivedIdx = filteredArchivedEmployees.findIndex(emp => emp.id === highlightedEmployeeId);
+      if (archivedIdx !== -1 && archivedIdx >= visibleArchivedCount) {
+        setVisibleArchivedCount(archivedIdx + 1);
       }
     }
-  }, [highlightedEmployeeId, filteredEmployees, visibleEmployeesCount]);
+  }, [highlightedEmployeeId, filteredActiveEmployees, filteredArchivedEmployees, visibleActiveCount, visibleArchivedCount]);
 
   const handleAddLeaveDirect = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -384,11 +417,18 @@ const App: React.FC = () => {
           </div>
         ) : (
           <div className="min-h-[60vh]">
-            {activeTab === 'dashboard' && <Dashboard />}
+            {/* Dashboard Tab */}
+            <div className={activeTab === 'dashboard' ? '' : 'hidden'}>
+              <Dashboard />
+            </div>
 
-            {activeTab === 'settings' && <Settings />}
+            {/* Settings Tab */}
+            <div className={activeTab === 'settings' ? '' : 'hidden'}>
+              <Settings />
+            </div>
 
-            {(activeTab === 'management' || activeTab === 'archive') && (
+            {/* Management (Active Employees) Tab */}
+            <div className={activeTab === 'management' ? '' : 'hidden'}>
               <div className={`space-y-6 ${highlightedEmployeeId ? '' : 'animate-in fade-in duration-300'}`}>
                 {/* Filter Sub-header */}
                 <div className="glass-panel rounded-[2.5rem] p-6 flex flex-wrap items-center justify-between gap-4 shadow-xl">
@@ -399,9 +439,7 @@ const App: React.FC = () => {
                       </svg>
                     </div>
                     <h3 className="text-sm font-black text-slate-200">
-                      {activeTab === 'archive' 
-                        ? (config.language === 'ar' ? 'أرشيف الموظفين الموقوفين' : 'Archived Employee Ledgers')
-                        : (config.language === 'ar' ? 'إدارة الموظفين والملفات المرفقة' : 'Active Employee Records')}
+                      {config.language === 'ar' ? 'إدارة الموظفين والملفات المرفقة' : 'Active Employee Records'}
                     </h3>
                   </div>
 
@@ -443,17 +481,17 @@ const App: React.FC = () => {
 
                 {/* Grid Employees Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                  {filteredEmployees.length > 0 ? (
+                  {filteredActiveEmployees.length > 0 ? (
                     <>
-                      {filteredEmployees.slice(0, visibleEmployeesCount).map(emp => (
+                      {filteredActiveEmployees.slice(0, visibleActiveCount).map(emp => (
                         <EmployeeCard key={emp.id} employee={emp} onEdit={handleEditClick} />
                       ))}
                       
                       {/* Load More Trigger */}
-                      {filteredEmployees.length > visibleEmployeesCount && (
+                      {filteredActiveEmployees.length > visibleActiveCount && (
                         <div className="col-span-full flex justify-center mt-6">
                           <button
-                            onClick={() => setVisibleEmployeesCount(prev => prev + 12)}
+                            onClick={() => setVisibleActiveCount(prev => prev + 12)}
                             className="px-8 py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 font-bold rounded-2xl transition-all text-xs uppercase tracking-wider cursor-pointer outline-none"
                           >
                             {t.loadMoreEmployees}
@@ -468,9 +506,91 @@ const App: React.FC = () => {
                   )}
                 </div>
               </div>
-            )}
+            </div>
 
-            {activeTab === 'leaves' && (
+            {/* Archive Tab */}
+            <div className={activeTab === 'archive' ? '' : 'hidden'}>
+              <div className={`space-y-6 ${highlightedEmployeeId ? '' : 'animate-in fade-in duration-300'}`}>
+                {/* Filter Sub-header */}
+                <div className="glass-panel rounded-[2.5rem] p-6 flex flex-wrap items-center justify-between gap-4 shadow-xl">
+                  <div className="flex items-center gap-3 select-none">
+                    <div className="p-3 bg-cyber-blue/15 rounded-2xl text-cyber-blue">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-sm font-black text-slate-200">
+                      {config.language === 'ar' ? 'أرشيف الموظفين الموقوفين' : 'Archived Employee Ledgers'}
+                    </h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full md:w-auto text-slate-200">
+                    <select
+                      value={filterStatus}
+                      onChange={e => setFilterStatus(e.target.value)}
+                      className="bg-slate-950 border border-slate-900 rounded-xl px-4 py-2 text-xs font-bold focus:border-cyber-blue outline-none transition-all cursor-pointer"
+                    >
+                      <option value="all">{t.filterStatus}</option>
+                      <option value="active">{t.active}</option>
+                      <option value="near">{t.nearExpiry}</option>
+                      <option value="expired">{t.expired}</option>
+                    </select>
+
+                    <select
+                      value={filterType}
+                      onChange={e => setFilterType(e.target.value)}
+                      className="bg-slate-950 border border-slate-900 rounded-xl px-4 py-2 text-xs font-bold focus:border-cyber-blue outline-none transition-all cursor-pointer"
+                    >
+                      <option value="all">{t.filterType}</option>
+                      {config.docTypes.map(type => (
+                        <option key={type} value={type}>{type}</option>
+                      ))}
+                    </select>
+
+                    <select
+                      value={filterDept}
+                      onChange={e => setFilterDept(e.target.value)}
+                      className="bg-slate-950 border border-slate-900 rounded-xl px-4 py-2 text-xs font-bold focus:border-cyber-blue outline-none transition-all cursor-pointer"
+                    >
+                      <option value="all">{t.filterDept}</option>
+                      {config.departments.map(dept => (
+                        <option key={dept} value={dept}>{dept}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Grid Employees Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {filteredArchivedEmployees.length > 0 ? (
+                    <>
+                      {filteredArchivedEmployees.slice(0, visibleArchivedCount).map(emp => (
+                        <EmployeeCard key={emp.id} employee={emp} onEdit={handleEditClick} />
+                      ))}
+                      
+                      {/* Load More Trigger */}
+                      {filteredArchivedEmployees.length > visibleArchivedCount && (
+                        <div className="col-span-full flex justify-center mt-6">
+                          <button
+                            onClick={() => setVisibleArchivedCount(prev => prev + 12)}
+                            className="px-8 py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 font-bold rounded-2xl transition-all text-xs uppercase tracking-wider cursor-pointer outline-none"
+                          >
+                            {t.loadMoreEmployees}
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="col-span-full py-20 text-center text-slate-700 font-bold tracking-[0.2em] uppercase select-none">
+                      {t.noData}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Leaves Tab */}
+            <div className={activeTab === 'leaves' ? '' : 'hidden'}>
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-300">
                 {/* Left Column: Direct leave Logger */}
                 <div className="lg:col-span-1 p-8 bg-white/5 border border-white/10 rounded-[3rem] shadow-xl space-y-6 self-start">
@@ -643,7 +763,7 @@ const App: React.FC = () => {
                   </div>
                 </div>
               </div>
-            )}
+            </div>
           </div>
         )}
       </main>
