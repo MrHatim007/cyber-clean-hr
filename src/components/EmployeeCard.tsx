@@ -12,7 +12,6 @@ interface EmployeeCardProps {
 export const EmployeeCard: React.FC<EmployeeCardProps> = ({ employee, onEdit }) => {
   const {
     config,
-    activeTab,
     deleteEmployee,
     archiveEmployee,
     restoreEmployee,
@@ -195,7 +194,7 @@ export const EmployeeCard: React.FC<EmployeeCardProps> = ({ employee, onEdit }) 
 
       {/* Action Buttons */}
       <div className="flex gap-2 pt-6 border-t border-white/5 mt-6 flex-wrap">
-        {activeTab === 'archive' ? (
+        {employee.isArchived ? (
           <>
             <button
               onClick={handleRestore}

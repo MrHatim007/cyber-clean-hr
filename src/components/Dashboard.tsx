@@ -20,7 +20,12 @@ export const Dashboard: React.FC = () => {
 
   const handleEmployeeClick = (empId: string) => {
     setHighlightedEmployeeId(empId);
-    setActiveTab('management');
+    const emp = employees.find(e => e.id === empId);
+    if (emp?.isArchived) {
+      setActiveTab('archive');
+    } else {
+      setActiveTab('management');
+    }
   };
 
   const [visibleDocsCount, setVisibleDocsCount] = useState(12);
