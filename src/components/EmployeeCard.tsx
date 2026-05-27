@@ -62,7 +62,7 @@ export const EmployeeCard: React.FC<EmployeeCardProps> = ({ employee, onEdit }) 
   return (
     <div
       ref={cardRef}
-      className={`glass-panel p-8 rounded-[3rem] hover:bg-white/[0.04] transition-colors duration-300 flex flex-col justify-between shadow-xl ${isHighlighted ? 'animate-flash-glow' : ''}`}
+      className={`glass-panel p-8 rounded-[3rem] hover:bg-white/[0.04] transition-colors duration-300 flex flex-col justify-between shadow-xl ${isHighlighted ? 'animate-flash-glow' : employee.isArchived ? 'animate-flash-glow-rose-infinite' : ''}`}
     >
       <div>
         {/* Top Header Card Info */}
@@ -83,6 +83,12 @@ export const EmployeeCard: React.FC<EmployeeCardProps> = ({ employee, onEdit }) 
             )}
           </div>
         </div>
+
+        {employee.isArchived && (
+          <div className="bg-cyber-rose/20 text-cyber-rose border border-cyber-rose/35 px-4 py-2 rounded-2xl text-xs font-black tracking-wider text-center mb-6 select-none animate-pulse">
+            {t.archivedBadge}
+          </div>
+        )}
 
         {/* Name and ID */}
         <h3 className="text-white font-black text-2xl mb-1 truncate select-all">{employee.employeeName}</h3>

@@ -127,12 +127,18 @@ const App: React.FC = () => {
   // Filtered active employees
   const filteredActiveEmployees = useMemo(() => {
     return employees.filter(emp => {
-      if (emp.isArchived) return false;
+      const isSearching = searchQuery.trim().length > 0;
+      
+      // If employee is archived, only show them if we are actively searching
+      if (emp.isArchived && !isSearching) return false;
 
       const matchesSearch =
         emp.employeeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         emp.employeeId.toLowerCase().includes(searchQuery.toLowerCase()) ||
         emp.documents.some(d => d.specificDocNumber.toLowerCase().includes(searchQuery.toLowerCase()));
+
+      // If they are archived and don't match the search, filter them out
+      if (emp.isArchived && !matchesSearch) return false;
 
       const matchesDept = filterDept === 'all' || emp.department === filterDept;
 

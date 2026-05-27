@@ -11,6 +11,7 @@
   
   --animate-pulse-glow: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   --animate-flash-glow: flash-glow 1s ease-in-out 3;
+  --animate-flash-glow-rose-infinite: flash-glow-rose 1.5s ease-in-out infinite;
   
   @keyframes pulse-glow {
     0%, 100% {
@@ -32,6 +33,18 @@
       border-color: #00e5ff;
       box-shadow: 0 0 35px rgba(0, 229, 255, 0.6);
       background-color: rgba(0, 229, 255, 0.07);
+    }
+  }
+
+  @keyframes flash-glow-rose {
+    0%, 100% {
+      border-color: rgba(255, 255, 255, 0.08);
+      box-shadow: none;
+    }
+    50% {
+      border-color: #f43f5e;
+      box-shadow: 0 0 35px rgba(244, 63, 94, 0.6);
+      background-color: rgba(244, 63, 94, 0.07);
     }
   }
 }
