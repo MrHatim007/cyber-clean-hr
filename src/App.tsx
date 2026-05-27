@@ -11,28 +11,27 @@ import type { EmployeeType } from './utils/schemas';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const App: React.FC = () => {
-  const {
-    employees,
-    config,
-    activeTab,
-    searchQuery,
-    filterStatus,
-    filterType,
-    filterDept,
-    notification,
-    loading,
-    loadData,
-    setActiveTab,
-    setSearchQuery,
-    setFilterStatus,
-    setFilterType,
-    setFilterDept,
-    toggleLanguage,
-    addLeaveDirectly,
-    deleteLeaveDirectly,
-    previewFile,
-    setPreviewFile,
-  } = useAppStore();
+  const employees = useAppStore(state => state.employees);
+  const config = useAppStore(state => state.config);
+  const activeTab = useAppStore(state => state.activeTab);
+  const searchQuery = useAppStore(state => state.searchQuery);
+  const filterStatus = useAppStore(state => state.filterStatus);
+  const filterType = useAppStore(state => state.filterType);
+  const filterDept = useAppStore(state => state.filterDept);
+  const notification = useAppStore(state => state.notification);
+  const loading = useAppStore(state => state.loading);
+  const loadData = useAppStore(state => state.loadData);
+  const setActiveTab = useAppStore(state => state.setActiveTab);
+  const setSearchQuery = useAppStore(state => state.setSearchQuery);
+  const setFilterStatus = useAppStore(state => state.setFilterStatus);
+  const setFilterType = useAppStore(state => state.setFilterType);
+  const setFilterDept = useAppStore(state => state.setFilterDept);
+  const toggleLanguage = useAppStore(state => state.toggleLanguage);
+  const addLeaveDirectly = useAppStore(state => state.addLeaveDirectly);
+  const deleteLeaveDirectly = useAppStore(state => state.deleteLeaveDirectly);
+  const previewFile = useAppStore(state => state.previewFile);
+  const setPreviewFile = useAppStore(state => state.setPreviewFile);
+  const highlightedEmployeeId = useAppStore(state => state.highlightedEmployeeId);
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -73,6 +72,8 @@ const App: React.FC = () => {
   useEffect(() => {
     setVisibleEmployeesCount(12);
   }, [activeTab, searchQuery, filterStatus, filterType, filterDept]);
+
+
 
   // Sync local search when global query changes (e.g., on config language toggling or backups)
   useEffect(() => {
@@ -149,6 +150,16 @@ const App: React.FC = () => {
       return matchesSearch && matchesDept && (!activeDocFiltering || matchesDocFilters);
     });
   }, [employees, searchQuery, filterStatus, filterType, filterDept, activeTab, config.threshold]);
+
+  // Make sure the highlighted employee is within the visible paginated slice
+  useEffect(() => {
+    if (highlightedEmployeeId) {
+      const idx = filteredEmployees.findIndex(emp => emp.id === highlightedEmployeeId);
+      if (idx !== -1 && idx >= visibleEmployeesCount) {
+        setVisibleEmployeesCount(idx + 1);
+      }
+    }
+  }, [highlightedEmployeeId, filteredEmployees, visibleEmployeesCount]);
 
   const handleAddLeaveDirect = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -378,7 +389,7 @@ const App: React.FC = () => {
             {activeTab === 'settings' && <Settings />}
 
             {(activeTab === 'management' || activeTab === 'archive') && (
-              <div className="space-y-6 animate-in fade-in duration-300">
+              <div className={`space-y-6 ${highlightedEmployeeId ? '' : 'animate-in fade-in duration-300'}`}>
                 {/* Filter Sub-header */}
                 <div className="glass-panel rounded-[2.5rem] p-6 flex flex-wrap items-center justify-between gap-4 shadow-xl">
                   <div className="flex items-center gap-3 select-none">

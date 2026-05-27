@@ -4,19 +4,17 @@ import { translations } from '../utils/translations';
 import { getDocStatus, getRemainingDays, calculateVacationBalance } from '../utils/vacationCalculations';
 
 export const Dashboard: React.FC = () => {
-  const {
-    employees,
-    config,
-    searchQuery,
-    filterStatus,
-    filterType,
-    filterDept,
-    setFilterStatus,
-    setFilterType,
-    setFilterDept,
-    setActiveTab,
-    setHighlightedEmployeeId,
-  } = useAppStore();
+  const employees = useAppStore(state => state.employees);
+  const config = useAppStore(state => state.config);
+  const searchQuery = useAppStore(state => state.searchQuery);
+  const filterStatus = useAppStore(state => state.filterStatus);
+  const filterType = useAppStore(state => state.filterType);
+  const filterDept = useAppStore(state => state.filterDept);
+  const setFilterStatus = useAppStore(state => state.setFilterStatus);
+  const setFilterType = useAppStore(state => state.setFilterType);
+  const setFilterDept = useAppStore(state => state.setFilterDept);
+  const setActiveTab = useAppStore(state => state.setActiveTab);
+  const setHighlightedEmployeeId = useAppStore(state => state.setHighlightedEmployeeId);
 
   const handleEmployeeClick = (empId: string) => {
     setHighlightedEmployeeId(empId);

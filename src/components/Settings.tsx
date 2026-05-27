@@ -4,7 +4,11 @@ import { translations } from '../utils/translations';
 import { BackupSchema } from '../utils/schemas';
 
 export const Settings: React.FC = () => {
-  const { config, updateConfig, showNotification, importBackup, employees } = useAppStore();
+  const config = useAppStore(state => state.config);
+  const updateConfig = useAppStore(state => state.updateConfig);
+  const showNotification = useAppStore(state => state.showNotification);
+  const importBackup = useAppStore(state => state.importBackup);
+  const employees = useAppStore(state => state.employees);
   const [newType, setNewType] = useState('');
   const [newDept, setNewDept] = useState('');
 

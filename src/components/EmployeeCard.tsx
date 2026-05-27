@@ -10,15 +10,13 @@ interface EmployeeCardProps {
 }
 
 export const EmployeeCard: React.FC<EmployeeCardProps> = ({ employee, onEdit }) => {
-  const {
-    config,
-    deleteEmployee,
-    archiveEmployee,
-    restoreEmployee,
-    setPreviewFile,
-    highlightedEmployeeId,
-    setHighlightedEmployeeId,
-  } = useAppStore();
+  const config = useAppStore(state => state.config);
+  const deleteEmployee = useAppStore(state => state.deleteEmployee);
+  const archiveEmployee = useAppStore(state => state.archiveEmployee);
+  const restoreEmployee = useAppStore(state => state.restoreEmployee);
+  const setPreviewFile = useAppStore(state => state.setPreviewFile);
+  const highlightedEmployeeId = useAppStore(state => state.highlightedEmployeeId);
+  const setHighlightedEmployeeId = useAppStore(state => state.setHighlightedEmployeeId);
   
   const t = translations[config.language];
   const isRTL = config.language === 'ar';

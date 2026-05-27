@@ -12,7 +12,10 @@ interface EmployeeModalProps {
 }
 
 export const EmployeeModal: React.FC<EmployeeModalProps> = ({ isOpen, onClose, employee }) => {
-  const { config, addEmployee, updateEmployee, showNotification } = useAppStore();
+  const config = useAppStore(state => state.config);
+  const addEmployee = useAppStore(state => state.addEmployee);
+  const updateEmployee = useAppStore(state => state.updateEmployee);
+  const showNotification = useAppStore(state => state.showNotification);
   const t = translations[config.language];
 
   // Local Form State
