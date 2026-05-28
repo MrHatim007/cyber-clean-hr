@@ -414,9 +414,11 @@ const App: React.FC = () => {
 
       {/* Mobile Sidebar Backdrop */}
       {isSidebarOpen && (
-        <div
+        <button
           onClick={() => setIsSidebarOpen(false)}
-          className="fixed inset-0 z-[95] bg-black/60 backdrop-blur-sm lg:hidden transition-opacity"
+          onTouchStart={() => setIsSidebarOpen(false)}
+          className="fixed inset-0 z-[95] bg-black/60 backdrop-blur-sm lg:hidden transition-opacity border-none outline-none cursor-pointer w-full h-full block"
+          aria-label="Close sidebar"
         />
       )}
 
