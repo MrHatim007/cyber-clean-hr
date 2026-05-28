@@ -130,18 +130,19 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     const updatedEmployees = [...get().employees, newEmp];
     set({ employees: updatedEmployees });
-    await dataService.saveEmployees(updatedEmployees);
+    await dataService.saveEmployee(newEmp);
     get().showNotification(get().config.language === 'ar' ? 'تمت إضافة الموظف بنجاح!' : 'Employee added successfully!');
   },
 
   updateEmployee: async (id, updatedFields) => {
+    let updatedEmp: EmployeeType | null = null;
     const updatedEmployees = get().employees.map(emp => {
       if (emp.id === id) {
         const baseSalary = Number(updatedFields.baseSalary ?? emp.baseSalary);
         const allowances = Number(updatedFields.allowances ?? emp.allowances);
         const salary = baseSalary + allowances;
         
-        return {
+        updatedEmp = {
           ...emp,
           ...updatedFields,
           baseSalary,
@@ -151,37 +152,54 @@ export const useAppStore = create<AppState>((set, get) => ({
           documents: updatedFields.documents ?? emp.documents,
           leaves: updatedFields.leaves ?? emp.leaves,
         } as EmployeeType;
+        return updatedEmp;
       }
       return emp;
     });
 
     set({ employees: updatedEmployees });
-    await dataService.saveEmployees(updatedEmployees);
+    if (updatedEmp) {
+      await dataService.saveEmployee(updatedEmp);
+    }
     get().showNotification(get().config.language === 'ar' ? 'تم تحديث بيانات الموظف!' : 'Employee updated successfully!');
   },
 
   deleteEmployee: async (id) => {
     const updatedEmployees = get().employees.filter(emp => emp.id !== id);
     set({ employees: updatedEmployees });
-    await dataService.saveEmployees(updatedEmployees);
+    await dataService.deleteEmployee(id);
     get().showNotification(get().config.language === 'ar' ? 'تم حذف الموظف!' : 'Employee deleted!');
   },
 
   archiveEmployee: async (id) => {
-    const updatedEmployees = get().employees.map(emp => 
-      emp.id === id ? { ...emp, isArchived: true } : emp
-    );
+    let updatedEmp: EmployeeType | null = null;
+    const updatedEmployees = get().employees.map(emp => {
+      if (emp.id === id) {
+        updatedEmp = { ...emp, isArchived: true };
+        return updatedEmp;
+      }
+      return emp;
+    });
     set({ employees: updatedEmployees });
-    await dataService.saveEmployees(updatedEmployees);
+    if (updatedEmp) {
+      await dataService.saveEmployee(updatedEmp);
+    }
     get().showNotification(get().config.language === 'ar' ? 'تم نقل الموظف للأرشيف!' : 'Employee archived!');
   },
 
   restoreEmployee: async (id) => {
-    const updatedEmployees = get().employees.map(emp => 
-      emp.id === id ? { ...emp, isArchived: false } : emp
-    );
+    let updatedEmp: EmployeeType | null = null;
+    const updatedEmployees = get().employees.map(emp => {
+      if (emp.id === id) {
+        updatedEmp = { ...emp, isArchived: false };
+        return updatedEmp;
+      }
+      return emp;
+    });
     set({ employees: updatedEmployees });
-    await dataService.saveEmployees(updatedEmployees);
+    if (updatedEmp) {
+      await dataService.saveEmployee(updatedEmp);
+    }
     get().showNotification(get().config.language === 'ar' ? 'تمت استعادة الموظف للعمل!' : 'Employee restored to active!');
   },
 
@@ -192,20 +210,22 @@ export const useAppStore = create<AppState>((set, get) => ({
     };
 
     let success = false;
+    let updatedEmp: EmployeeType | null = null;
     const updatedEmployees = get().employees.map(emp => {
       if (emp.id === employeeId) {
         success = true;
-        return {
+        updatedEmp = {
           ...emp,
           leaves: [...(emp.leaves || []), newLeave],
         };
+        return updatedEmp;
       }
       return emp;
     });
 
-    if (success) {
+    if (success && updatedEmp) {
       set({ employees: updatedEmployees });
-      await dataService.saveEmployees(updatedEmployees);
+      await dataService.saveEmployee(updatedEmp);
       get().showNotification(get().config.language === 'ar' ? 'تم تسجيل الإجازة بنجاح!' : 'Leave recorded successfully!');
       return true;
     }
@@ -213,18 +233,22 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   deleteLeaveDirectly: async (employeeId, leaveId) => {
+    let updatedEmp: EmployeeType | null = null;
     const updatedEmployees = get().employees.map(emp => {
       if (emp.id === employeeId) {
-        return {
+        updatedEmp = {
           ...emp,
           leaves: (emp.leaves || []).filter(l => l.id !== leaveId),
         };
+        return updatedEmp;
       }
       return emp;
     });
 
     set({ employees: updatedEmployees });
-    await dataService.saveEmployees(updatedEmployees);
+    if (updatedEmp) {
+      await dataService.saveEmployee(updatedEmp);
+    }
     get().showNotification(get().config.language === 'ar' ? 'تم حذف الإجازة!' : 'Leave deleted!');
   },
 
@@ -253,7 +277,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   addUser: async (newUser) => {
     const updatedUsers = [...get().users, newUser];
     set({ users: updatedUsers });
-    await dataService.saveUsers(updatedUsers);
+    await dataService.saveUser(newUser);
     get().showNotification(get().config.language === 'ar' ? 'تم إضافة المستخدم بنجاح!' : 'User added successfully!');
   },
 
@@ -265,7 +289,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
     const updatedUsers = get().users.filter(u => u.id !== id);
     set({ users: updatedUsers });
-    await dataService.saveUsers(updatedUsers);
+    await dataService.deleteUser(id);
     
     if (get().currentUser?.id === id) {
       get().logoutUser();
@@ -275,9 +299,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   updateUser: async (id, updatedFields) => {
+    let updatedUser: UserType | null = null;
     const updatedUsers = get().users.map(u => {
       if (u.id === id) {
-        return {
+        updatedUser = {
           ...u,
           ...updatedFields,
           permissions: {
@@ -285,12 +310,15 @@ export const useAppStore = create<AppState>((set, get) => ({
             ...updatedFields.permissions
           }
         } as UserType;
+        return updatedUser;
       }
       return u;
     });
 
     set({ users: updatedUsers });
-    await dataService.saveUsers(updatedUsers);
+    if (updatedUser) {
+      await dataService.saveUser(updatedUser);
+    }
 
     // Sync session if the current user profile was edited
     const cur = get().currentUser;
@@ -338,7 +366,9 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   importBackup: async (backup) => {
     set({ employees: backup.docs, config: backup.config });
-    await dataService.saveEmployees(backup.docs);
+    for (const emp of backup.docs) {
+      await dataService.saveEmployee(emp);
+    }
     await dataService.saveConfig(backup.config);
     get().showNotification(backup.config.language === 'ar' ? 'تم استيراد البيانات بنجاح!' : 'Backup imported successfully!');
   },

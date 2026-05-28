@@ -1,14 +1,16 @@
-import { collection, doc, getDoc, getDocs, setDoc, writeBatch } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc, deleteDoc } from 'firebase/firestore';
 import { db, isPlaceholder } from '../firebaseConfig';
 import type { EmployeeType, ConfigType, UserType } from '../utils/schemas';
 
 export interface IDataService {
   getEmployees(): Promise<EmployeeType[]>;
-  saveEmployees(employees: EmployeeType[]): Promise<void>;
+  saveEmployee(employee: EmployeeType): Promise<void>;
+  deleteEmployee(id: string): Promise<void>;
   getConfig(): Promise<ConfigType>;
   saveConfig(config: ConfigType): Promise<void>;
   getUsers(): Promise<UserType[]>;
-  saveUsers(users: UserType[]): Promise<void>;
+  saveUser(user: UserType): Promise<void>;
+  deleteUser(id: string): Promise<void>;
 }
 
 const STORAGE_KEY_DOCS = 'pro_doc_system_v3_data';
@@ -41,7 +43,7 @@ const DEFAULT_ADMIN: UserType = {
 
 // 1. LocalStorage Fallback Implementation
 export class LocalStorageDataService implements IDataService {
-  async getEmployees(): Promise<EmployeeType[]> {
+  private getLocalEmployees(): EmployeeType[] {
     const saved = localStorage.getItem(STORAGE_KEY_DOCS);
     if (!saved) return [];
     try {
@@ -70,8 +72,44 @@ export class LocalStorageDataService implements IDataService {
     }
   }
 
-  async saveEmployees(employees: EmployeeType[]): Promise<void> {
+  private saveLocalEmployees(employees: EmployeeType[]) {
     localStorage.setItem(STORAGE_KEY_DOCS, JSON.stringify(employees));
+  }
+
+  private getLocalUsers(): UserType[] {
+    const saved = localStorage.getItem(STORAGE_KEY_USERS);
+    if (!saved) return [DEFAULT_ADMIN];
+    try {
+      const parsed = JSON.parse(saved);
+      if (!Array.isArray(parsed) || parsed.length === 0) return [DEFAULT_ADMIN];
+      return parsed;
+    } catch {
+      return [DEFAULT_ADMIN];
+    }
+  }
+
+  private saveLocalUsers(users: UserType[]) {
+    localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users));
+  }
+
+  async getEmployees(): Promise<EmployeeType[]> {
+    return this.getLocalEmployees();
+  }
+
+  async saveEmployee(employee: EmployeeType): Promise<void> {
+    const emps = this.getLocalEmployees();
+    const idx = emps.findIndex(e => e.id === employee.id);
+    if (idx !== -1) {
+      emps[idx] = employee;
+    } else {
+      emps.push(employee);
+    }
+    this.saveLocalEmployees(emps);
+  }
+
+  async deleteEmployee(id: string): Promise<void> {
+    const emps = this.getLocalEmployees().filter(e => e.id !== id);
+    this.saveLocalEmployees(emps);
   }
 
   async getConfig(): Promise<ConfigType> {
@@ -89,34 +127,29 @@ export class LocalStorageDataService implements IDataService {
   }
 
   async getUsers(): Promise<UserType[]> {
-    const saved = localStorage.getItem(STORAGE_KEY_USERS);
-    if (!saved) {
-      const seedUsers = [DEFAULT_ADMIN];
-      localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(seedUsers));
-      return seedUsers;
+    const users = this.getLocalUsers();
+    const hasAdmin = users.some(u => u.role === 'admin' || u.username === 'admin');
+    if (!hasAdmin) {
+      users.unshift(DEFAULT_ADMIN);
+      this.saveLocalUsers(users);
     }
-    try {
-      const parsed = JSON.parse(saved);
-      if (!Array.isArray(parsed) || parsed.length === 0) {
-        const seedUsers = [DEFAULT_ADMIN];
-        localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(seedUsers));
-        return seedUsers;
-      }
-      const hasAdmin = parsed.some((u: any) => u.role === 'admin' || u.username === 'admin');
-      if (!hasAdmin) {
-        parsed.unshift(DEFAULT_ADMIN);
-        localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(parsed));
-      }
-      return parsed;
-    } catch {
-      const seedUsers = [DEFAULT_ADMIN];
-      localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(seedUsers));
-      return seedUsers;
-    }
+    return users;
   }
 
-  async saveUsers(users: UserType[]): Promise<void> {
-    localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users));
+  async saveUser(user: UserType): Promise<void> {
+    const users = this.getLocalUsers();
+    const idx = users.findIndex(u => u.id === user.id);
+    if (idx !== -1) {
+      users[idx] = user;
+    } else {
+      users.push(user);
+    }
+    this.saveLocalUsers(users);
+  }
+
+  async deleteUser(id: string): Promise<void> {
+    const users = this.getLocalUsers().filter(u => u.id !== id);
+    this.saveLocalUsers(users);
   }
 }
 
@@ -153,30 +186,19 @@ export class FirestoreDataService implements IDataService {
     }
   }
 
-  async saveEmployees(employees: EmployeeType[]): Promise<void> {
+  async saveEmployee(employee: EmployeeType): Promise<void> {
     try {
-      const batch = writeBatch(db);
-      
-      // Get all existing documents from collection
-      const snapshot = await getDocs(collection(db, 'employees'));
-      const existingIds = snapshot.docs.map(doc => doc.id);
-      const newIds = employees.map(emp => emp.id);
-
-      // Delete employees no longer present
-      existingIds.forEach(id => {
-        if (!newIds.includes(id)) {
-          batch.delete(doc(db, 'employees', id));
-        }
-      });
-
-      // Write/Set updated employees
-      employees.forEach(emp => {
-        batch.set(doc(db, 'employees', emp.id), emp);
-      });
-
-      await batch.commit();
+      await setDoc(doc(db, 'employees', employee.id), employee);
     } catch (err) {
-      console.error("Firestore saveEmployees error:", err);
+      console.error("Firestore saveEmployee error:", err);
+    }
+  }
+
+  async deleteEmployee(id: string): Promise<void> {
+    try {
+      await deleteDoc(doc(db, 'employees', id));
+    } catch (err) {
+      console.error("Firestore deleteEmployee error:", err);
     }
   }
 
@@ -186,7 +208,6 @@ export class FirestoreDataService implements IDataService {
       if (configDoc.exists()) {
         return configDoc.data() as ConfigType;
       }
-      // Seed initial config to firestore if it doesn't exist
       await setDoc(doc(db, 'config', 'global_config'), INITIAL_CONFIG);
       return INITIAL_CONFIG;
     } catch (err) {
@@ -212,7 +233,6 @@ export class FirestoreDataService implements IDataService {
       });
 
       if (list.length === 0) {
-        // Seed default admin
         await setDoc(doc(db, 'users', DEFAULT_ADMIN.id), DEFAULT_ADMIN);
         return [DEFAULT_ADMIN];
       }
@@ -230,26 +250,19 @@ export class FirestoreDataService implements IDataService {
     }
   }
 
-  async saveUsers(users: UserType[]): Promise<void> {
+  async saveUser(user: UserType): Promise<void> {
     try {
-      const batch = writeBatch(db);
-      const snapshot = await getDocs(collection(db, 'users'));
-      const existingIds = snapshot.docs.map(doc => doc.id);
-      const newIds = users.map(u => u.id);
-
-      existingIds.forEach(id => {
-        if (!newIds.includes(id)) {
-          batch.delete(doc(db, 'users', id));
-        }
-      });
-
-      users.forEach(u => {
-        batch.set(doc(db, 'users', u.id), u);
-      });
-
-      await batch.commit();
+      await setDoc(doc(db, 'users', user.id), user);
     } catch (err) {
-      console.error("Firestore saveUsers error:", err);
+      console.error("Firestore saveUser error:", err);
+    }
+  }
+
+  async deleteUser(id: string): Promise<void> {
+    try {
+      await deleteDoc(doc(db, 'users', id));
+    } catch (err) {
+      console.error("Firestore deleteUser error:", err);
     }
   }
 }

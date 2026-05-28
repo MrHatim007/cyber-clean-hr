@@ -8,7 +8,7 @@ export const UserManagement: React.FC = () => {
   const users = useAppStore(state => state.users);
   const addUser = useAppStore(state => state.addUser);
   const deleteUser = useAppStore(state => state.deleteUser);
-  const updateUser = useAppStore(state => (state as any).updateUser); // We'll add this action to store
+  const updateUser = useAppStore(state => state.updateUser);
 
   const t = translations[config.language];
 
