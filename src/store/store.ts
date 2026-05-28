@@ -33,6 +33,7 @@ interface AppState {
   logoutUser: () => void;
   addUser: (user: UserType) => Promise<void>;
   deleteUser: (id: string) => Promise<void>;
+  updateUser: (id: string, updatedFields: Partial<UserType>) => Promise<void>;
   
   // State setters
   setSearchQuery: (query: string) => void;
@@ -271,6 +272,41 @@ export const useAppStore = create<AppState>((set, get) => ({
     } else {
       get().showNotification(get().config.language === 'ar' ? 'تم حذف حساب المستخدم!' : 'User account deleted!');
     }
+  },
+
+  updateUser: async (id, updatedFields) => {
+    const updatedUsers = get().users.map(u => {
+      if (u.id === id) {
+        return {
+          ...u,
+          ...updatedFields,
+          permissions: {
+            ...u.permissions,
+            ...updatedFields.permissions
+          }
+        } as UserType;
+      }
+      return u;
+    });
+
+    set({ users: updatedUsers });
+    await dataService.saveUsers(updatedUsers);
+
+    // Sync session if the current user profile was edited
+    const cur = get().currentUser;
+    if (cur && cur.id === id) {
+      const updatedCur = updatedUsers.find(u => u.id === id) || null;
+      set({ currentUser: updatedCur });
+      if (updatedCur) {
+        localStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(updatedCur));
+      }
+    }
+
+    get().showNotification(
+      get().config.language === 'ar' 
+        ? 'تم تحديث حساب المستخدم بنجاح!' 
+        : 'User account updated successfully!'
+    );
   },
 
   setSearchQuery: (query) => set({ searchQuery: query }),

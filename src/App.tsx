@@ -7,6 +7,7 @@ import { EmployeeModal } from './components/EmployeeModal';
 import { EmployeeCard } from './components/EmployeeCard';
 import { Autocomplete } from './components/Autocomplete';
 import { Login } from './components/Login';
+import { UserManagement } from './components/UserManagement';
 import { checkLeaveOverlap, calculateVacationBalance, getDaysBetween, getDocStatus } from './utils/vacationCalculations';
 import type { EmployeeType } from './utils/schemas';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -62,7 +63,7 @@ const App: React.FC = () => {
 
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#/', '');
-      const allowed = ['dashboard', 'management', 'leaves', 'archive', 'settings'];
+      const allowed = ['dashboard', 'management', 'leaves', 'archive', 'settings', 'users'];
       if (allowed.includes(hash)) {
         setActiveTab(hash);
       }
@@ -109,7 +110,9 @@ const App: React.FC = () => {
       { id: 'leaves', permission: 'canViewLeaves' },
       { id: 'archive', permission: 'canViewArchive' },
       { id: 'settings', permission: 'canViewSettings' },
+      { id: 'users', permission: 'canViewSettings' },
     ].filter(item => {
+      if (item.id === 'users') return currentUser.role === 'admin';
       if (currentUser.role === 'admin') return true;
       return currentUser.permissions[item.permission as keyof typeof currentUser.permissions];
     });
@@ -369,9 +372,13 @@ const App: React.FC = () => {
               ), label: t.archive, permission: 'canViewArchive' as const },
               { id: 'settings', icon: (
                 <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              ), label: t.settings, permission: 'canViewSettings' as const }
+              ), label: t.settings, permission: 'canViewSettings' as const },
+              { id: 'users', icon: (
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              ), label: t.usersTab, permission: 'canViewSettings' as const }
             ].filter(item => {
               if (!currentUser) return false;
+              if (item.id === 'users') return currentUser.role === 'admin';
               if (currentUser.role === 'admin') return true;
               return currentUser.permissions[item.permission];
             }).map(item => (
@@ -461,7 +468,7 @@ const App: React.FC = () => {
         <div className="hidden lg:flex items-center justify-between mb-12">
           <div>
             <h1 className="text-4xl font-black text-white tracking-tighter uppercase select-none">
-              {activeTab === 'leaves' ? t.leavesTab : (t[activeTab as keyof typeof t] as string)}
+              {activeTab === 'leaves' ? t.leavesTab : activeTab === 'users' ? t.usersTab : (t[activeTab as keyof typeof t] as string)}
             </h1>
             <p className="text-slate-500 font-bold mt-1 select-none">
               {config.language === 'ar'
@@ -510,10 +517,17 @@ const App: React.FC = () => {
               <Dashboard />
             </div>
 
-            {/* Settings Tab */}
+             {/* Settings Tab */}
             <div className={activeTab === 'settings' ? '' : 'hidden'}>
               <Settings />
             </div>
+
+            {/* User Management Tab */}
+            {currentUser?.role === 'admin' && (
+              <div className={activeTab === 'users' ? '' : 'hidden'}>
+                <UserManagement />
+              </div>
+            )}
 
             {/* Management (Active Employees) Tab */}
             <div className={activeTab === 'management' ? '' : 'hidden'}>
