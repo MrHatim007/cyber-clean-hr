@@ -38,6 +38,7 @@ export const ConfigSchema = z.object({
   language: z.enum(['ar', 'en']),
   docTypes: z.array(z.string()),
   departments: z.array(z.string()),
+  logoUrl: z.string().optional(),
 });
 
 export const BackupSchema = z.object({

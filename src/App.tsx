@@ -403,11 +403,19 @@ const App: React.FC = () => {
       >
         <div className="flex flex-col h-full p-8">
           <div className="flex items-center gap-4 mb-12">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyber-blue to-indigo-600 flex items-center justify-center shadow-xl shadow-cyber-blue/20">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-slate-950" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-              </svg>
-            </div>
+            {config.logoUrl ? (
+              <img
+                src={config.logoUrl}
+                alt="Company Logo"
+                className="w-12 h-12 rounded-2xl object-contain bg-slate-900/50 p-1 border border-white/5 shadow-xl"
+              />
+            ) : (
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyber-blue to-indigo-600 flex items-center justify-center shadow-xl shadow-cyber-blue/20">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-slate-950" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+              </div>
+            )}
             <span className="text-lg font-black tracking-tighter text-white select-none">{t.title}</span>
           </div>
 
@@ -491,7 +499,7 @@ const App: React.FC = () => {
       <main className={`transition-all duration-300 lg:p-12 p-5 ${isRTL ? 'lg:mr-72' : 'lg:ml-72'}`}>
         
         {/* Mobile Header Bar */}
-        <div className="flex lg:hidden items-center justify-between mb-8 select-none">
+        <div className="sticky top-0 z-40 flex lg:hidden items-center justify-between py-4 mb-6 -mx-5 px-5 bg-[#05060a]/80 backdrop-blur-md border-b border-white/5 select-none">
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
             className="p-4 bg-white/5 border border-white/10 rounded-2xl text-slate-300 cursor-pointer outline-none"
@@ -501,11 +509,19 @@ const App: React.FC = () => {
             </svg>
           </button>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-cyber-blue flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5.5 w-5.5 text-slate-950" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-              </svg>
-            </div>
+            {config.logoUrl ? (
+              <img
+                src={config.logoUrl}
+                alt="Company Logo"
+                className="w-8 h-8 rounded-xl object-contain bg-slate-900/50 p-0.5 border border-white/5 shadow-md"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-xl bg-cyber-blue flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5.5 w-5.5 text-slate-950" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+              </div>
+            )}
             <span className="font-black text-white text-sm">{t.title}</span>
           </div>
           {canEditManagement ? (
