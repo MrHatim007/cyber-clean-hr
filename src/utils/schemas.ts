@@ -45,8 +45,28 @@ export const BackupSchema = z.object({
   config: ConfigSchema,
 });
 
+export const UserPermissionsSchema = z.object({
+  canViewDashboard: z.boolean().default(true),
+  canViewManagement: z.boolean().default(true),
+  canEditManagement: z.boolean().default(false),
+  canViewLeaves: z.boolean().default(true),
+  canEditLeaves: z.boolean().default(false),
+  canViewArchive: z.boolean().default(true),
+  canEditArchive: z.boolean().default(false),
+  canViewSettings: z.boolean().default(false),
+});
+
+export const UserSchema = z.object({
+  id: z.string(),
+  username: z.string().min(3, 'Username must be at least 3 characters'),
+  password: z.string().min(4, 'Password must be at least 4 characters'),
+  role: z.enum(['admin', 'user']),
+  permissions: UserPermissionsSchema,
+});
+
 export type DocumentType = z.infer<typeof DocumentSchema>;
 export type LeaveType = z.infer<typeof LeaveSchema>;
 export type EmployeeType = z.infer<typeof EmployeeSchema>;
 export type ConfigType = z.infer<typeof ConfigSchema>;
 export type BackupType = z.infer<typeof BackupSchema>;
+export type UserType = z.infer<typeof UserSchema>;

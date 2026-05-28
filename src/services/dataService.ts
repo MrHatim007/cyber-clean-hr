@@ -1,20 +1,40 @@
-import type { EmployeeType, ConfigType } from '../utils/schemas';
+import type { EmployeeType, ConfigType, UserType } from '../utils/schemas';
 
 export interface IDataService {
   getEmployees(): Promise<EmployeeType[]>;
   saveEmployees(employees: EmployeeType[]): Promise<void>;
   getConfig(): Promise<ConfigType>;
   saveConfig(config: ConfigType): Promise<void>;
+  getUsers(): Promise<UserType[]>;
+  saveUsers(users: UserType[]): Promise<void>;
 }
 
 const STORAGE_KEY_DOCS = 'pro_doc_system_v3_data';
 const STORAGE_KEY_CONFIG = 'pro_doc_system_v3_config';
+const STORAGE_KEY_USERS = 'pro_doc_system_v3_users';
 
 const INITIAL_CONFIG: ConfigType = {
   threshold: 30,
   language: 'ar',
   docTypes: ['جواز سفر', 'هوية', 'إقامة', 'رخصة قيادة', 'تأمين', 'سجل تجاري'],
   departments: ['الموارد البشرية', 'المالية', 'الإدارة', 'التشغيل', 'تقنية المعلومات'],
+};
+
+const DEFAULT_ADMIN: UserType = {
+  id: 'admin-id',
+  username: 'admin',
+  password: 'admin',
+  role: 'admin',
+  permissions: {
+    canViewDashboard: true,
+    canViewManagement: true,
+    canEditManagement: true,
+    canViewLeaves: true,
+    canEditLeaves: true,
+    canViewArchive: true,
+    canEditArchive: true,
+    canViewSettings: true,
+  }
 };
 
 export class LocalStorageDataService implements IDataService {
@@ -63,6 +83,37 @@ export class LocalStorageDataService implements IDataService {
 
   async saveConfig(config: ConfigType): Promise<void> {
     localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(config));
+  }
+
+  async getUsers(): Promise<UserType[]> {
+    const saved = localStorage.getItem(STORAGE_KEY_USERS);
+    if (!saved) {
+      const seedUsers = [DEFAULT_ADMIN];
+      localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(seedUsers));
+      return seedUsers;
+    }
+    try {
+      const parsed = JSON.parse(saved);
+      if (!Array.isArray(parsed) || parsed.length === 0) {
+        const seedUsers = [DEFAULT_ADMIN];
+        localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(seedUsers));
+        return seedUsers;
+      }
+      const hasAdmin = parsed.some((u: any) => u.role === 'admin' || u.username === 'admin');
+      if (!hasAdmin) {
+        parsed.unshift(DEFAULT_ADMIN);
+        localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(parsed));
+      }
+      return parsed;
+    } catch {
+      const seedUsers = [DEFAULT_ADMIN];
+      localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(seedUsers));
+      return seedUsers;
+    }
+  }
+
+  async saveUsers(users: UserType[]): Promise<void> {
+    localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users));
   }
 }
 

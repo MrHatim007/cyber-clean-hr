@@ -15,14 +15,23 @@ export const Dashboard: React.FC = () => {
   const setFilterDept = useAppStore(state => state.setFilterDept);
   const setActiveTab = useAppStore(state => state.setActiveTab);
   const setHighlightedEmployeeId = useAppStore(state => state.setHighlightedEmployeeId);
+  const currentUser = useAppStore(state => state.currentUser);
+
+  const canViewManagement = currentUser?.role === 'admin' || currentUser?.permissions.canViewManagement;
+  const canViewArchive = currentUser?.role === 'admin' || currentUser?.permissions.canViewArchive;
 
   const handleEmployeeClick = (empId: string) => {
-    setHighlightedEmployeeId(empId);
     const emp = employees.find(e => e.id === empId);
     if (emp?.isArchived) {
-      setActiveTab('archive');
+      if (canViewArchive) {
+        setHighlightedEmployeeId(empId);
+        setActiveTab('archive');
+      }
     } else {
-      setActiveTab('management');
+      if (canViewManagement) {
+        setHighlightedEmployeeId(empId);
+        setActiveTab('management');
+      }
     }
   };
 

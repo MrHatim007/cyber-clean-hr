@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { EmployeeType, ConfigType, LeaveType, BackupType } from '../utils/schemas';
+import type { EmployeeType, ConfigType, LeaveType, BackupType, UserType } from '../utils/schemas';
 import { dataService, INITIAL_CONFIG } from '../services/dataService';
 
 interface AppState {
@@ -14,6 +14,8 @@ interface AppState {
   notification: string | null;
   previewFile: { url: string; name: string } | null;
   highlightedEmployeeId: string | null;
+  currentUser: UserType | null;
+  users: UserType[];
   
   // Actions
   loadData: () => Promise<void>;
@@ -25,6 +27,12 @@ interface AppState {
   restoreEmployee: (id: string) => Promise<void>;
   addLeaveDirectly: (employeeId: string, leave: Omit<LeaveType, 'id'>) => Promise<boolean>;
   deleteLeaveDirectly: (employeeId: string, leaveId: string) => Promise<void>;
+  
+  // Authentication Actions
+  loginUser: (username: string, password: string) => Promise<boolean>;
+  logoutUser: () => void;
+  addUser: (user: UserType) => Promise<void>;
+  deleteUser: (id: string) => Promise<void>;
   
   // State setters
   setSearchQuery: (query: string) => void;
@@ -38,6 +46,8 @@ interface AppState {
   setPreviewFile: (file: { url: string; name: string } | null) => void;
   setHighlightedEmployeeId: (id: string | null) => void;
 }
+
+const STORAGE_KEY_SESSION = 'pro_doc_system_v3_session';
 
 const getInitialTab = (): string => {
   if (typeof window === 'undefined') return 'dashboard';
@@ -58,6 +68,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   notification: null,
   previewFile: null,
   highlightedEmployeeId: null,
+  currentUser: null,
+  users: [],
 
   setPreviewFile: (file) => set({ previewFile: file }),
   setHighlightedEmployeeId: (id) => set({ highlightedEmployeeId: id }),
@@ -67,7 +79,23 @@ export const useAppStore = create<AppState>((set, get) => ({
     try {
       const employees = await dataService.getEmployees();
       const config = await dataService.getConfig();
-      set({ employees, config, loading: false });
+      const users = await dataService.getUsers();
+      
+      let currentUser: UserType | null = null;
+      const savedSession = localStorage.getItem(STORAGE_KEY_SESSION);
+      if (savedSession) {
+        try {
+          const parsed = JSON.parse(savedSession);
+          const found = users.find(u => u.id === parsed.id && u.username === parsed.username);
+          if (found) {
+            currentUser = found;
+          }
+        } catch {
+          // ignore
+        }
+      }
+      
+      set({ employees, config, users, currentUser, loading: false });
     } catch {
       set({ loading: false });
     }
@@ -118,6 +146,9 @@ export const useAppStore = create<AppState>((set, get) => ({
           baseSalary,
           allowances,
           salary,
+          isArchived: updatedFields.isArchived ?? emp.isArchived,
+          documents: updatedFields.documents ?? emp.documents,
+          leaves: updatedFields.leaves ?? emp.leaves,
         } as EmployeeType;
       }
       return emp;
@@ -194,6 +225,52 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ employees: updatedEmployees });
     await dataService.saveEmployees(updatedEmployees);
     get().showNotification(get().config.language === 'ar' ? 'تم حذف الإجازة!' : 'Leave deleted!');
+  },
+
+  loginUser: async (username, password) => {
+    const users = get().users;
+    const user = users.find(u => u.username === username && u.password === password);
+    if (user) {
+      set({ currentUser: user });
+      localStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(user));
+      get().showNotification(get().config.language === 'ar' ? 'تم تسجيل الدخول بنجاح!' : 'Logged in successfully!');
+      return true;
+    }
+    get().showNotification(get().config.language === 'ar' ? 'اسم المستخدم أو كلمة المرور غير صحيحة!' : 'Invalid username or password!');
+    return false;
+  },
+
+  logoutUser: () => {
+    set({ currentUser: null, activeTab: 'dashboard' });
+    localStorage.removeItem(STORAGE_KEY_SESSION);
+    if (typeof window !== 'undefined') {
+      window.location.hash = '#/dashboard';
+    }
+    get().showNotification(get().config.language === 'ar' ? 'تم تسجيل الخروج!' : 'Logged out!');
+  },
+
+  addUser: async (newUser) => {
+    const updatedUsers = [...get().users, newUser];
+    set({ users: updatedUsers });
+    await dataService.saveUsers(updatedUsers);
+    get().showNotification(get().config.language === 'ar' ? 'تم إضافة المستخدم بنجاح!' : 'User added successfully!');
+  },
+
+  deleteUser: async (id) => {
+    const adminUser = get().users.find(u => u.role === 'admin');
+    if (adminUser?.id === id) {
+      get().showNotification(get().config.language === 'ar' ? 'لا يمكن حذف حساب المسؤول الافتراضي للنظام!' : 'Default Admin account cannot be deleted!');
+      return;
+    }
+    const updatedUsers = get().users.filter(u => u.id !== id);
+    set({ users: updatedUsers });
+    await dataService.saveUsers(updatedUsers);
+    
+    if (get().currentUser?.id === id) {
+      get().logoutUser();
+    } else {
+      get().showNotification(get().config.language === 'ar' ? 'تم حذف حساب المستخدم!' : 'User account deleted!');
+    }
   },
 
   setSearchQuery: (query) => set({ searchQuery: query }),

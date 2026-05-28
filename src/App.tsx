@@ -6,6 +6,7 @@ import { Settings } from './components/Settings';
 import { EmployeeModal } from './components/EmployeeModal';
 import { EmployeeCard } from './components/EmployeeCard';
 import { Autocomplete } from './components/Autocomplete';
+import { Login } from './components/Login';
 import { checkLeaveOverlap, calculateVacationBalance, getDaysBetween, getDocStatus } from './utils/vacationCalculations';
 import type { EmployeeType } from './utils/schemas';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -32,6 +33,8 @@ const App: React.FC = () => {
   const previewFile = useAppStore(state => state.previewFile);
   const setPreviewFile = useAppStore(state => state.setPreviewFile);
   const highlightedEmployeeId = useAppStore(state => state.highlightedEmployeeId);
+  const currentUser = useAppStore(state => state.currentUser);
+  const logoutUser = useAppStore(state => state.logoutUser);
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -95,6 +98,27 @@ const App: React.FC = () => {
     document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
     document.documentElement.lang = config.language;
   }, [config.language, isRTL]);
+
+  // Redirect to first allowed tab if activeTab is not allowed
+  useEffect(() => {
+    if (loading || !currentUser) return;
+
+    const allowedTabs = [
+      { id: 'dashboard', permission: 'canViewDashboard' },
+      { id: 'management', permission: 'canViewManagement' },
+      { id: 'leaves', permission: 'canViewLeaves' },
+      { id: 'archive', permission: 'canViewArchive' },
+      { id: 'settings', permission: 'canViewSettings' },
+    ].filter(item => {
+      if (currentUser.role === 'admin') return true;
+      return currentUser.permissions[item.permission as keyof typeof currentUser.permissions];
+    });
+
+    const isAllowed = allowedTabs.some(tab => tab.id === activeTab);
+    if (!isAllowed && allowedTabs.length > 0) {
+      setActiveTab(allowedTabs[0].id);
+    }
+  }, [currentUser, activeTab, loading, setActiveTab]);
 
   const handleEditClick = (emp: EmployeeType) => {
     setEditingEmployee(emp);
@@ -267,6 +291,33 @@ const App: React.FC = () => {
     }
   };
 
+  const canEditManagement = currentUser?.role === 'admin' || currentUser?.permissions.canEditManagement;
+  const canEditLeaves = currentUser?.role === 'admin' || currentUser?.permissions.canEditLeaves;
+
+  if (!loading && currentUser === null) {
+    return (
+      <div className="min-h-screen bg-[#05060a] text-slate-100 font-cairo overflow-x-hidden" dir={isRTL ? 'rtl' : 'ltr'}>
+        {/* Global Notifications even during Login */}
+        <AnimatePresence>
+          {notification && (
+            <motion.div
+              initial={{ opacity: 0, y: -50, x: '-50%' }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -50 }}
+              className="fixed top-6 left-1/2 z-[300] bg-cyber-blue text-slate-950 font-black px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border border-cyber-blue/30"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              <span className="text-sm">{notification}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <Login />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#05060a] text-slate-100 font-cairo overflow-x-hidden" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Global Notifications */}
@@ -288,8 +339,9 @@ const App: React.FC = () => {
 
       {/* Sidebar Navigation */}
       <aside
-        className={`fixed inset-y-0 z-[100] transition-all duration-300 backdrop-blur-3xl bg-white/5 border-r border-white/5 lg:translate-x-0 w-72 
-        ${isRTL ? (isSidebarOpen ? 'translate-x-0' : 'translate-x-full right-0') : (isSidebarOpen ? 'translate-x-0' : '-translate-x-full left-0')}`}
+        className={`fixed inset-y-0 z-[100] transition-all duration-300 backdrop-blur-3xl bg-white/5 border-white/5 lg:translate-x-0 w-72 
+        ${isRTL ? 'right-0 border-l' : 'left-0 border-r'} 
+        ${isRTL ? (isSidebarOpen ? 'translate-x-0' : 'translate-x-full') : (isSidebarOpen ? 'translate-x-0' : '-translate-x-full')}`}
       >
         <div className="flex flex-col h-full p-8">
           <div className="flex items-center gap-4 mb-12">
@@ -305,20 +357,24 @@ const App: React.FC = () => {
             {[
               { id: 'dashboard', icon: (
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z" />
-              ), label: t.dashboard },
+              ), label: t.dashboard, permission: 'canViewDashboard' as const },
               { id: 'management', icon: (
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              ), label: t.management },
+              ), label: t.management, permission: 'canViewManagement' as const },
               { id: 'leaves', icon: (
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-              ), label: t.leavesTab },
+              ), label: t.leavesTab, permission: 'canViewLeaves' as const },
               { id: 'archive', icon: (
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-              ), label: t.archive },
+              ), label: t.archive, permission: 'canViewArchive' as const },
               { id: 'settings', icon: (
                 <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              ), label: t.settings }
-            ].map(item => (
+              ), label: t.settings, permission: 'canViewSettings' as const }
+            ].filter(item => {
+              if (!currentUser) return false;
+              if (currentUser.role === 'admin') return true;
+              return currentUser.permissions[item.permission];
+            }).map(item => (
               <button
                 key={item.id}
                 onClick={() => { setActiveTab(item.id); setIsSidebarOpen(false); }}
@@ -332,7 +388,7 @@ const App: React.FC = () => {
             ))}
           </nav>
 
-          <div className="pt-6 border-t border-white/5 select-none">
+          <div className="pt-6 border-t border-white/5 select-none space-y-3">
             <button
               onClick={toggleLanguage}
               className="w-full flex items-center gap-3 p-4 rounded-2xl bg-white/5 text-slate-400 hover:text-white transition-all text-xs font-black uppercase cursor-pointer outline-none"
@@ -342,9 +398,27 @@ const App: React.FC = () => {
               </svg>
               {config.language === 'ar' ? 'English UI' : 'اللغة العربية'}
             </button>
+            
+            <button
+              onClick={() => logoutUser()}
+              className="w-full flex items-center gap-3 p-4 rounded-2xl bg-cyber-rose/10 hover:bg-cyber-rose text-cyber-rose hover:text-white transition-all text-xs font-black uppercase cursor-pointer outline-none border border-cyber-rose/15 hover:border-cyber-rose/30"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              {t.logout}
+            </button>
           </div>
         </div>
       </aside>
+
+      {/* Mobile Sidebar Backdrop */}
+      {isSidebarOpen && (
+        <div
+          onClick={() => setIsSidebarOpen(false)}
+          className="fixed inset-0 z-[95] bg-black/60 backdrop-blur-sm lg:hidden transition-opacity"
+        />
+      )}
 
       {/* Main Content Shell */}
       <main className={`transition-all duration-300 lg:p-12 p-5 ${isRTL ? 'lg:mr-72' : 'lg:ml-72'}`}>
@@ -367,21 +441,25 @@ const App: React.FC = () => {
             </div>
             <span className="font-black text-white text-sm">{t.title}</span>
           </div>
-          <button
-            onClick={handleAddClick}
-            className="p-4 bg-cyber-blue rounded-2xl text-slate-950 shadow-lg cursor-pointer outline-none"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5.5 w-5.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-          </button>
+          {canEditManagement ? (
+            <button
+              onClick={handleAddClick}
+              className="p-4 bg-cyber-blue rounded-2xl text-slate-950 shadow-lg cursor-pointer outline-none animate-pulse-glow"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5.5 w-5.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+            </button>
+          ) : (
+            <div className="w-[53px]" /> // Placeholder to maintain centered layout grid alignment
+          )}
         </div>
 
         {/* Desktop Top Header Bar */}
         <div className="hidden lg:flex items-center justify-between mb-12">
           <div>
             <h1 className="text-4xl font-black text-white tracking-tighter uppercase select-none">
-              {activeTab === 'leaves' ? t.leavesTab : t[activeTab as keyof typeof t]}
+              {activeTab === 'leaves' ? t.leavesTab : (t[activeTab as keyof typeof t] as string)}
             </h1>
             <p className="text-slate-500 font-bold mt-1 select-none">
               {config.language === 'ar'
@@ -404,15 +482,17 @@ const App: React.FC = () => {
               />
             </div>
             
-            <button
-              onClick={handleAddClick}
-              className="bg-cyber-blue hover:bg-cyan-500 text-slate-950 font-black px-8 py-4 rounded-2xl flex items-center gap-3 transition-all shadow-xl shadow-cyber-blue/10 cursor-pointer outline-none select-none text-sm"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5.5 w-5.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-              {t.addDoc}
-            </button>
+            {canEditManagement && (
+              <button
+                onClick={handleAddClick}
+                className="bg-cyber-blue hover:bg-cyan-500 text-slate-950 font-black px-8 py-4 rounded-2xl flex items-center gap-3 transition-all shadow-xl shadow-cyber-blue/10 cursor-pointer outline-none select-none text-sm animate-pulse-glow"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5.5 w-5.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                {t.addDoc}
+              </button>
+            )}
           </div>
         </div>
 
@@ -599,84 +679,86 @@ const App: React.FC = () => {
             <div className={activeTab === 'leaves' ? '' : 'hidden'}>
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-300">
                 {/* Left Column: Direct leave Logger */}
-                <div className="lg:col-span-1 p-8 bg-white/5 border border-white/10 rounded-[3rem] shadow-xl space-y-6 self-start">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 bg-cyber-blue/15 rounded-2xl text-cyber-blue">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-cyber-blue animate-pulse-glow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                      </svg>
+                {canEditLeaves && (
+                  <div className="lg:col-span-1 p-8 bg-white/5 border border-white/10 rounded-[3rem] shadow-xl space-y-6 self-start">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 bg-cyber-blue/15 rounded-2xl text-cyber-blue">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-cyber-blue animate-pulse-glow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                        </svg>
+                      </div>
+                      <h3 className="text-xl font-black text-white select-none">
+                        {config.language === 'ar' ? 'تسجيل إجازة للموظف' : 'Record Employee Leave'}
+                      </h3>
                     </div>
-                    <h3 className="text-xl font-black text-white select-none">
-                      {config.language === 'ar' ? 'تسجيل إجازة للموظف' : 'Record Employee Leave'}
-                    </h3>
+
+                    <form onSubmit={handleAddLeaveDirect} className="space-y-4">
+                      {/* Autocomplete Input Selector */}
+                      <Autocomplete
+                        label={t.holderName}
+                        placeholder={config.language === 'ar' ? 'ابحث باسم أو رقم الموظف...' : 'Search employee name or ID...'}
+                        value={leaveEmployeeId}
+                        onChange={setLeaveEmployeeId}
+                      />
+
+                      {/* Start Date */}
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-500 uppercase block ml-1 select-none">
+                          {config.language === 'ar' ? 'تاريخ البدء' : 'Start Date'}
+                        </label>
+                        <input
+                          type="date"
+                          required
+                          value={leaveStartDate}
+                          onChange={e => setLeaveStartDate(e.target.value)}
+                          onClick={e => { try { (e.target as any).showPicker(); } catch (err) {} }}
+                          onFocus={e => { try { (e.target as any).showPicker(); } catch (err) {} }}
+                          className="w-full bg-slate-950 border border-slate-900 rounded-2xl py-3.5 px-4 text-xs font-bold text-white focus:border-cyber-blue outline-none transition-all"
+                        />
+                      </div>
+
+                      {/* End Date */}
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-500 uppercase block ml-1 select-none">
+                          {config.language === 'ar' ? 'تاريخ الانتهاء' : 'End Date'}
+                        </label>
+                        <input
+                          type="date"
+                          required
+                          value={leaveEndDate}
+                          onChange={e => setLeaveEndDate(e.target.value)}
+                          onClick={e => { try { (e.target as any).showPicker(); } catch (err) {} }}
+                          onFocus={e => { try { (e.target as any).showPicker(); } catch (err) {} }}
+                          className="w-full bg-slate-950 border border-slate-900 rounded-2xl py-3.5 px-4 text-xs font-bold text-white focus:border-cyber-blue outline-none transition-all"
+                        />
+                      </div>
+
+                      {/* Notes */}
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-500 uppercase block ml-1 select-none">
+                          {config.language === 'ar' ? 'السبب / الملاحظات' : 'Reason / Notes'}
+                        </label>
+                        <input
+                          type="text"
+                          value={leaveNotes}
+                          onChange={e => setLeaveNotes(e.target.value)}
+                          placeholder="..."
+                          className="w-full bg-slate-950 border border-slate-900 rounded-2xl py-3.5 px-4 text-xs font-bold text-white focus:border-cyber-blue outline-none transition-all"
+                        />
+                      </div>
+
+                      <button
+                        type="submit"
+                        className="w-full py-4 bg-cyber-blue hover:bg-cyan-500 text-slate-950 font-black rounded-2xl shadow-xl shadow-cyber-blue/10 transition-all text-xs uppercase tracking-wider cursor-pointer outline-none"
+                      >
+                        {config.language === 'ar' ? 'تسجيل وإعتماد الإجازة' : 'Log and Approve Leave'}
+                      </button>
+                    </form>
                   </div>
-
-                  <form onSubmit={handleAddLeaveDirect} className="space-y-4">
-                    {/* Autocomplete Input Selector */}
-                    <Autocomplete
-                      label={t.holderName}
-                      placeholder={config.language === 'ar' ? 'ابحث باسم أو رقم الموظف...' : 'Search employee name or ID...'}
-                      value={leaveEmployeeId}
-                      onChange={setLeaveEmployeeId}
-                    />
-
-                    {/* Start Date */}
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-black text-slate-500 uppercase block ml-1 select-none">
-                        {config.language === 'ar' ? 'تاريخ البدء' : 'Start Date'}
-                      </label>
-                      <input
-                        type="date"
-                        required
-                        value={leaveStartDate}
-                        onChange={e => setLeaveStartDate(e.target.value)}
-                        onClick={e => { try { (e.target as any).showPicker(); } catch (err) {} }}
-                        onFocus={e => { try { (e.target as any).showPicker(); } catch (err) {} }}
-                        className="w-full bg-slate-950 border border-slate-900 rounded-2xl py-3.5 px-4 text-xs font-bold text-white focus:border-cyber-blue outline-none transition-all"
-                      />
-                    </div>
-
-                    {/* End Date */}
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-black text-slate-500 uppercase block ml-1 select-none">
-                        {config.language === 'ar' ? 'تاريخ الانتهاء' : 'End Date'}
-                      </label>
-                      <input
-                        type="date"
-                        required
-                        value={leaveEndDate}
-                        onChange={e => setLeaveEndDate(e.target.value)}
-                        onClick={e => { try { (e.target as any).showPicker(); } catch (err) {} }}
-                        onFocus={e => { try { (e.target as any).showPicker(); } catch (err) {} }}
-                        className="w-full bg-slate-950 border border-slate-900 rounded-2xl py-3.5 px-4 text-xs font-bold text-white focus:border-cyber-blue outline-none transition-all"
-                      />
-                    </div>
-
-                    {/* Notes */}
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-black text-slate-500 uppercase block ml-1 select-none">
-                        {config.language === 'ar' ? 'السبب / الملاحظات' : 'Reason / Notes'}
-                      </label>
-                      <input
-                        type="text"
-                        value={leaveNotes}
-                        onChange={e => setLeaveNotes(e.target.value)}
-                        placeholder="..."
-                        className="w-full bg-slate-950 border border-slate-900 rounded-2xl py-3.5 px-4 text-xs font-bold text-white focus:border-cyber-blue outline-none transition-all"
-                      />
-                    </div>
-
-                    <button
-                      type="submit"
-                      className="w-full py-4 bg-cyber-blue hover:bg-cyan-500 text-slate-950 font-black rounded-2xl shadow-xl shadow-cyber-blue/10 transition-all text-xs uppercase tracking-wider cursor-pointer outline-none"
-                    >
-                      {config.language === 'ar' ? 'تسجيل وإعتماد الإجازة' : 'Log and Approve Leave'}
-                    </button>
-                  </form>
-                </div>
+                )}
 
                 {/* Right Column: Vacation Ledgers and Logs List */}
-                <div className="lg:col-span-2 space-y-6">
+                <div className={`${canEditLeaves ? 'lg:col-span-2' : 'lg:col-span-3'} space-y-6`}>
                   {/* Vacation Balances List */}
                   <div className="p-8 bg-white/5 border border-white/10 rounded-[3rem] shadow-xl space-y-6">
                     <h3 className="text-lg font-black text-white flex items-center gap-2 select-none">
@@ -737,7 +819,12 @@ const App: React.FC = () => {
                           return (
                             <div key={leave.id} className="p-5 bg-slate-950/40 border border-white/5 rounded-2xl flex items-center justify-between gap-4">
                               <div className="space-y-1">
-                                <h4 className="text-sm font-black text-white">{leave.employeeName}</h4>
+                                <div className="flex items-center gap-2">
+                                  <h4 className="text-sm font-black text-white">{leave.employeeName}</h4>
+                                  <span className="px-2.5 py-0.5 rounded-lg bg-cyber-blue/15 border border-cyber-blue/20 text-[10px] text-cyber-blue font-bold">
+                                    {duration} {t.days}
+                                  </span>
+                                </div>
                                 <p className="text-xs text-slate-400 font-bold">
                                   {leave.notes || (config.language === 'ar' ? 'لا توجد ملاحظات' : 'No notes')}
                                 </p>
@@ -746,20 +833,17 @@ const App: React.FC = () => {
                                   <span>{config.language === 'ar' ? 'إلى' : 'To'}: {leave.endDate}</span>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-3">
-                                <span className="bg-cyber-blue/10 text-cyber-blue border border-cyber-blue/20 px-3 py-1 rounded-xl text-xs font-black select-none">
-                                  {duration} {t.days}
-                                </span>
-                                <button
-                                  onClick={() => handleDeleteLeaveDirect(leave.parentEmployeeId, leave.id)}
-                                  className="p-2 bg-cyber-rose/10 hover:bg-cyber-rose text-cyber-rose hover:text-white rounded-xl transition-all cursor-pointer border border-cyber-rose/10 outline-none"
-                                >
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                  </svg>
-                                </button>
+                              {canEditLeaves && (
+                                  <button
+                                    onClick={() => handleDeleteLeaveDirect(leave.parentEmployeeId, leave.id)}
+                                    className="p-2 bg-cyber-rose/10 hover:bg-cyber-rose text-cyber-rose hover:text-white rounded-xl transition-all cursor-pointer border border-cyber-rose/10 outline-none"
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                  </button>
+                                )}
                               </div>
-                            </div>
                           );
                         })
                       ) : (

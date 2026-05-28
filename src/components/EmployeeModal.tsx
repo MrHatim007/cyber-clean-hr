@@ -16,7 +16,11 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({ isOpen, onClose, e
   const addEmployee = useAppStore(state => state.addEmployee);
   const updateEmployee = useAppStore(state => state.updateEmployee);
   const showNotification = useAppStore(state => state.showNotification);
+  const currentUser = useAppStore(state => state.currentUser);
   const t = translations[config.language];
+
+  const canEditManagement = currentUser?.role === 'admin' || currentUser?.permissions.canEditManagement;
+  const canEditLeaves = currentUser?.role === 'admin' || currentUser?.permissions.canEditLeaves;
 
   // Local Form State
   const [employeeId, setEmployeeId] = useState('');
@@ -305,7 +309,8 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({ isOpen, onClose, e
                 type="text"
                 value={employeeName}
                 onChange={e => setEmployeeName(e.target.value)}
-                className={`w-full bg-slate-950 border-2 rounded-2xl py-4 px-6 text-sm font-bold text-white focus:border-cyber-blue outline-none transition-all shadow-inner ${errors.employeeName ? 'border-cyber-rose' : 'border-slate-900'}`}
+                disabled={!canEditManagement}
+                className={`w-full bg-slate-950 border-2 rounded-2xl py-4 px-6 text-sm font-bold text-white focus:border-cyber-blue outline-none transition-all shadow-inner ${errors.employeeName ? 'border-cyber-rose' : 'border-slate-900'} disabled:opacity-65 disabled:cursor-not-allowed`}
               />
               {errors.employeeName && <span className="text-[10px] text-cyber-rose">{errors.employeeName}</span>}
             </div>
@@ -319,7 +324,8 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({ isOpen, onClose, e
                 type="text"
                 value={employeeId}
                 onChange={e => setEmployeeId(e.target.value)}
-                className={`w-full bg-slate-950 border-2 rounded-2xl py-4 px-6 text-sm font-bold text-white focus:border-cyber-blue outline-none transition-all shadow-inner ${errors.employeeId ? 'border-cyber-rose' : 'border-slate-900'}`}
+                disabled={!canEditManagement}
+                className={`w-full bg-slate-950 border-2 rounded-2xl py-4 px-6 text-sm font-bold text-white focus:border-cyber-blue outline-none transition-all shadow-inner ${errors.employeeId ? 'border-cyber-rose' : 'border-slate-900'} disabled:opacity-65 disabled:cursor-not-allowed`}
               />
               {errors.employeeId && <span className="text-[10px] text-cyber-rose">{errors.employeeId}</span>}
             </div>
@@ -332,7 +338,8 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({ isOpen, onClose, e
               <select
                 value={department}
                 onChange={e => setDepartment(e.target.value)}
-                className={`w-full bg-slate-950 border-2 rounded-2xl py-4 px-6 text-sm font-bold text-white focus:border-cyber-blue outline-none cursor-pointer ${errors.department ? 'border-cyber-rose' : 'border-slate-900'}`}
+                disabled={!canEditManagement}
+                className={`w-full bg-slate-950 border-2 rounded-2xl py-4 px-6 text-sm font-bold text-white focus:border-cyber-blue outline-none cursor-pointer ${errors.department ? 'border-cyber-rose' : 'border-slate-900'} disabled:opacity-65 disabled:cursor-not-allowed`}
               >
                 <option value="">{t.filterDept}...</option>
                 {config.departments.map(dept => (
@@ -351,9 +358,10 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({ isOpen, onClose, e
                 type="date"
                 value={startDate}
                 onChange={e => setStartDate(e.target.value)}
+                disabled={!canEditManagement}
                 onClick={e => { try { (e.target as any).showPicker(); } catch (err) {} }}
                 onFocus={e => { try { (e.target as any).showPicker(); } catch (err) {} }}
-                className={`w-full bg-slate-950 border-2 rounded-2xl py-4 px-6 text-sm font-bold text-white focus:border-cyber-blue outline-none transition-all shadow-inner ${errors.startDate ? 'border-cyber-rose' : 'border-slate-900'}`}
+                className={`w-full bg-slate-950 border-2 rounded-2xl py-4 px-6 text-sm font-bold text-white focus:border-cyber-blue outline-none transition-all shadow-inner ${errors.startDate ? 'border-cyber-rose' : 'border-slate-900'} disabled:opacity-65 disabled:cursor-not-allowed`}
               />
               {errors.startDate && <span className="text-[10px] text-cyber-rose">{errors.startDate}</span>}
             </div>
@@ -367,8 +375,9 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({ isOpen, onClose, e
                 type="number"
                 value={baseSalary}
                 onChange={e => setBaseSalary(e.target.value)}
+                disabled={!canEditManagement}
                 placeholder="0"
-                className={`w-full bg-slate-950 border-2 rounded-2xl py-4 px-6 text-sm font-bold text-white focus:border-cyber-blue outline-none transition-all shadow-inner ${errors.baseSalary ? 'border-cyber-rose' : 'border-slate-900'}`}
+                className={`w-full bg-slate-950 border-2 rounded-2xl py-4 px-6 text-sm font-bold text-white focus:border-cyber-blue outline-none transition-all shadow-inner ${errors.baseSalary ? 'border-cyber-rose' : 'border-slate-900'} disabled:opacity-65 disabled:cursor-not-allowed`}
               />
               {errors.baseSalary && <span className="text-[10px] text-cyber-rose">{errors.baseSalary}</span>}
             </div>
@@ -381,8 +390,9 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({ isOpen, onClose, e
                 type="number"
                 value={allowances}
                 onChange={e => setAllowances(e.target.value)}
+                disabled={!canEditManagement}
                 placeholder="0"
-                className={`w-full bg-slate-950 border-2 rounded-2xl py-4 px-6 text-sm font-bold text-white focus:border-cyber-blue outline-none transition-all shadow-inner ${errors.allowances ? 'border-cyber-rose' : 'border-slate-900'}`}
+                className={`w-full bg-slate-950 border-2 rounded-2xl py-4 px-6 text-sm font-bold text-white focus:border-cyber-blue outline-none transition-all shadow-inner ${errors.allowances ? 'border-cyber-rose' : 'border-slate-900'} disabled:opacity-65 disabled:cursor-not-allowed`}
               />
               {errors.allowances && <span className="text-[10px] text-cyber-rose">{errors.allowances}</span>}
             </div>
@@ -406,13 +416,15 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({ isOpen, onClose, e
                   </svg>
                   {t.leaveTitle}
                 </h3>
-                <button
-                  type="button"
-                  onClick={handleAddLeave}
-                  className="px-4 py-2 bg-cyber-blue/10 hover:bg-cyber-blue text-cyber-blue hover:text-white border border-cyber-blue/20 font-bold text-xs rounded-xl transition-all shadow-md cursor-pointer outline-none"
-                >
-                  {t.addLeaveBtn}
-                </button>
+                {canEditLeaves && (
+                  <button
+                    type="button"
+                    onClick={handleAddLeave}
+                    className="px-4 py-2 bg-cyber-blue/10 hover:bg-cyber-blue text-cyber-blue hover:text-white border border-cyber-blue/20 font-bold text-xs rounded-xl transition-all shadow-md cursor-pointer outline-none"
+                  >
+                    {t.addLeaveBtn}
+                  </button>
+                )}
               </div>
 
               <div className="p-4 bg-cyber-emerald/5 border border-cyber-emerald/10 rounded-2xl flex justify-between items-center text-xs select-none">
@@ -436,15 +448,17 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({ isOpen, onClose, e
                             {config.language === 'ar' ? `إجازة #${idx + 1}` : `Leave #${idx + 1}`}
                             {days > 0 && ` (${days} ${t.days})`}
                           </span>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveLeave(leave.id)}
-                            className="text-cyber-rose hover:bg-cyber-rose/20 p-1.5 rounded-lg transition-all cursor-pointer outline-none"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </button>
+                          {canEditLeaves && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveLeave(leave.id)}
+                              className="text-cyber-rose hover:bg-cyber-rose/20 p-1.5 rounded-lg transition-all cursor-pointer outline-none"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          )}
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="space-y-1">
@@ -453,10 +467,11 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({ isOpen, onClose, e
                               type="date"
                               required
                               value={leave.startDate}
+                              disabled={!canEditLeaves}
                               onChange={e => handleUpdateLeave(leave.id, 'startDate', e.target.value)}
                               onClick={e => { try { (e.target as any).showPicker(); } catch (err) {} }}
                               onFocus={e => { try { (e.target as any).showPicker(); } catch (err) {} }}
-                              className="w-full bg-slate-950 border border-slate-900 rounded-xl py-2.5 px-4 text-xs text-white focus:border-cyber-blue outline-none"
+                              className="w-full bg-slate-950 border border-slate-900 rounded-xl py-2.5 px-4 text-xs text-white focus:border-cyber-blue outline-none disabled:opacity-65"
                             />
                           </div>
                           <div className="space-y-1">
@@ -465,20 +480,22 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({ isOpen, onClose, e
                               type="date"
                               required
                               value={leave.endDate}
+                              disabled={!canEditLeaves}
                               onChange={e => handleUpdateLeave(leave.id, 'endDate', e.target.value)}
                               onClick={e => { try { (e.target as any).showPicker(); } catch (err) {} }}
                               onFocus={e => { try { (e.target as any).showPicker(); } catch (err) {} }}
-                              className="w-full bg-slate-950 border border-slate-900 rounded-xl py-2.5 px-4 text-xs text-white focus:border-cyber-blue outline-none"
+                              className="w-full bg-slate-950 border border-slate-900 rounded-xl py-2.5 px-4 text-xs text-white focus:border-cyber-blue outline-none disabled:opacity-65"
                             />
                           </div>
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[10px] font-black text-slate-500 uppercase select-none">{config.language === 'ar' ? 'السبب / ملاحظات' : 'Reason / Notes'}</label>
+                          <label className="text-[10px] font-black text-slate-500 uppercase select-none">{config.language === 'ar' ? 'سبب الإجازة / ملاحظات إضافية' : 'Reason / Notes'}</label>
                           <input
                             type="text"
                             value={leave.notes}
+                            disabled={!canEditLeaves}
                             onChange={e => handleUpdateLeave(leave.id, 'notes', e.target.value)}
-                            className="w-full bg-slate-950 border border-slate-900 rounded-xl py-2.5 px-4 text-xs text-white focus:border-cyber-blue outline-none"
+                            className="w-full bg-slate-950 border border-slate-900 rounded-xl py-2.5 px-4 text-xs text-white focus:border-cyber-blue outline-none disabled:opacity-65"
                           />
                         </div>
                       </div>
@@ -499,13 +516,15 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({ isOpen, onClose, e
               <h3 className="text-lg font-black text-white select-none">
                 {t.attachments}
               </h3>
-              <button
-                type="button"
-                onClick={handleAddDocument}
-                className="px-4 py-2 bg-cyber-blue/10 hover:bg-cyber-blue text-cyber-blue hover:text-white border border-cyber-blue/20 font-bold text-xs rounded-xl transition-all shadow-md cursor-pointer outline-none"
-              >
-                {t.addDocumentBtn}
-              </button>
+              {canEditManagement && (
+                <button
+                  type="button"
+                  onClick={handleAddDocument}
+                  className="px-4 py-2 bg-cyber-blue/10 hover:bg-cyber-blue text-cyber-blue hover:text-white border border-cyber-blue/20 font-bold text-xs rounded-xl transition-all shadow-md cursor-pointer outline-none"
+                >
+                  {t.addDocumentBtn}
+                </button>
+              )}
             </div>
 
             <div className="space-y-4">
@@ -516,15 +535,17 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({ isOpen, onClose, e
                       <span className="text-xs font-black text-cyber-blue">
                         {config.language === 'ar' ? `المستند المرفق #${idx + 1}` : `Attached Document #${idx + 1}`}
                       </span>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveDocument(doc.id)}
-                        className="text-cyber-rose hover:bg-cyber-rose/20 p-1.5 rounded-lg transition-all cursor-pointer outline-none"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
+                      {canEditManagement && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveDocument(doc.id)}
+                          className="text-cyber-rose hover:bg-cyber-rose/20 p-1.5 rounded-lg transition-all cursor-pointer outline-none"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -533,8 +554,9 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({ isOpen, onClose, e
                         <label className="text-[10px] font-black text-slate-500 uppercase select-none">{t.type}</label>
                         <select
                           value={doc.docType}
+                          disabled={!canEditManagement}
                           onChange={e => handleUpdateDocument(doc.id, 'docType', e.target.value)}
-                          className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2.5 px-4 text-xs text-white focus:border-cyber-blue outline-none cursor-pointer"
+                          className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2.5 px-4 text-xs text-white focus:border-cyber-blue outline-none cursor-pointer disabled:opacity-65"
                         >
                           {config.docTypes.map(type => (
                             <option key={type} value={type}>{type}</option>
@@ -549,8 +571,9 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({ isOpen, onClose, e
                           type="text"
                           required
                           value={doc.specificDocNumber}
+                          disabled={!canEditManagement}
                           onChange={e => handleUpdateDocument(doc.id, 'specificDocNumber', e.target.value)}
-                          className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2.5 px-4 text-xs text-white focus:border-cyber-blue outline-none"
+                          className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2.5 px-4 text-xs text-white focus:border-cyber-blue outline-none disabled:opacity-65"
                         />
                       </div>
 
@@ -561,10 +584,11 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({ isOpen, onClose, e
                           type="date"
                           required
                           value={doc.startDate}
+                          disabled={!canEditManagement}
                           onChange={e => handleUpdateDocument(doc.id, 'startDate', e.target.value)}
                           onClick={e => { try { (e.target as any).showPicker(); } catch (err) {} }}
                           onFocus={e => { try { (e.target as any).showPicker(); } catch (err) {} }}
-                          className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2.5 px-4 text-xs text-white focus:border-cyber-blue outline-none"
+                          className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2.5 px-4 text-xs text-white focus:border-cyber-blue outline-none disabled:opacity-65"
                         />
                       </div>
 
@@ -575,10 +599,11 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({ isOpen, onClose, e
                           type="date"
                           required
                           value={doc.expiryDate}
+                          disabled={!canEditManagement}
                           onChange={e => handleUpdateDocument(doc.id, 'expiryDate', e.target.value)}
                           onClick={e => { try { (e.target as any).showPicker(); } catch (err) {} }}
                           onFocus={e => { try { (e.target as any).showPicker(); } catch (err) {} }}
-                          className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2.5 px-4 text-xs text-white focus:border-cyber-blue outline-none"
+                          className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2.5 px-4 text-xs text-white focus:border-cyber-blue outline-none disabled:opacity-65"
                         />
                       </div>
                     </div>
@@ -591,8 +616,9 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({ isOpen, onClose, e
                         <input
                           type="text"
                           value={doc.notes}
+                          disabled={!canEditManagement}
                           onChange={e => handleUpdateDocument(doc.id, 'notes', e.target.value)}
-                          className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2.5 px-4 text-xs text-white focus:border-cyber-blue outline-none"
+                          className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2.5 px-4 text-xs text-white focus:border-cyber-blue outline-none disabled:opacity-65"
                         />
                       </div>
                       
@@ -625,19 +651,21 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({ isOpen, onClose, e
                                   </svg>
                                 </button>
                               )}
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveFile(doc.id)}
-                                className="text-cyber-rose hover:bg-cyber-rose/15 p-1 rounded-lg transition-colors cursor-pointer outline-none"
-                                title={config.language === 'ar' ? 'حذف الملف' : 'Delete file'}
-                              >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                              </button>
+                              {canEditManagement && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveFile(doc.id)}
+                                  className="text-cyber-rose hover:bg-cyber-rose/15 p-1 rounded-lg transition-colors cursor-pointer outline-none"
+                                  title={config.language === 'ar' ? 'حذف الملف' : 'Delete file'}
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </button>
+                              )}
                             </div>
                           </div>
-                        ) : (
+                        ) : canEditManagement ? (
                           <label className="flex items-center justify-between p-2.5 bg-slate-950 hover:bg-white/[0.02] border border-slate-900 hover:border-cyber-blue/35 rounded-xl cursor-pointer transition-all text-xs text-slate-500 font-bold select-none">
                             <span className="truncate">{t.uploadPlaceholder}</span>
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4.5 w-4.5 text-slate-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -650,6 +678,10 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({ isOpen, onClose, e
                               className="hidden"
                             />
                           </label>
+                        ) : (
+                          <div className="p-2.5 text-xs text-slate-600 font-bold italic select-none">
+                            {config.language === 'ar' ? 'لا يوجد ملف مرفق' : 'No attached file'}
+                          </div>
                         )}
                       </div>
                     </div>
@@ -666,18 +698,20 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({ isOpen, onClose, e
 
         {/* Modal Footer Actions */}
         <div className="p-8 border-t border-white/5 flex gap-4 shrink-0 bg-[#0a0c14]">
-          <button
-            type="submit"
-            className="flex-1 py-5 bg-cyber-blue hover:bg-cyan-500 text-slate-950 font-black rounded-3xl shadow-xl shadow-cyber-blue/20 transition-all uppercase tracking-wider text-xs cursor-pointer outline-none"
-          >
-            {t.save}
-          </button>
+          {(canEditManagement || canEditLeaves) && (
+            <button
+              type="submit"
+              className="flex-1 py-5 bg-cyber-blue hover:bg-cyan-500 text-slate-950 font-black rounded-3xl shadow-xl shadow-cyber-blue/20 transition-all uppercase tracking-wider text-xs cursor-pointer outline-none"
+            >
+              {t.save}
+            </button>
+          )}
           <button
             type="button"
             onClick={onClose}
-            className="px-10 py-5 bg-white/5 hover:bg-white/10 text-slate-300 font-bold rounded-3xl transition-all border border-white/5 uppercase text-xs cursor-pointer outline-none"
+            className={`${(canEditManagement || canEditLeaves) ? 'px-10' : 'flex-1'} py-5 bg-white/5 hover:bg-white/10 text-slate-300 font-bold rounded-3xl transition-all border border-white/5 uppercase text-xs cursor-pointer outline-none`}
           >
-            {t.cancel}
+            {(canEditManagement || canEditLeaves) ? t.cancel : (config.language === 'ar' ? 'إغلاق' : 'Close')}
           </button>
         </div>
       </form>

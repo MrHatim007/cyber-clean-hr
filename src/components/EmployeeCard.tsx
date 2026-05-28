@@ -17,9 +17,13 @@ export const EmployeeCard: React.FC<EmployeeCardProps> = ({ employee, onEdit }) 
   const setPreviewFile = useAppStore(state => state.setPreviewFile);
   const highlightedEmployeeId = useAppStore(state => state.highlightedEmployeeId);
   const setHighlightedEmployeeId = useAppStore(state => state.setHighlightedEmployeeId);
+  const currentUser = useAppStore(state => state.currentUser);
   
   const t = translations[config.language];
   const isRTL = config.language === 'ar';
+
+  const canEditArchive = currentUser?.role === 'admin' || currentUser?.permissions.canEditArchive;
+  const canEditManagement = currentUser?.role === 'admin' || currentUser?.permissions.canEditManagement;
 
   const vacation = useMemo(() => {
     return calculateVacationBalance(employee);
@@ -197,60 +201,62 @@ export const EmployeeCard: React.FC<EmployeeCardProps> = ({ employee, onEdit }) 
       </div>
 
       {/* Action Buttons */}
-      <div className="flex gap-2 pt-6 border-t border-white/5 mt-6 flex-wrap">
-        {employee.isArchived ? (
-          <>
-            <button
-              onClick={handleRestore}
-              className="flex-1 py-3.5 bg-cyber-emerald hover:bg-emerald-600 text-white rounded-2xl transition-all font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 outline-none shadow-lg cursor-pointer"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89M9 11l3-3 3 3" />
-              </svg>
-              {t.restoreAction}
-            </button>
-            <button
-              onClick={handleDelete}
-              className="px-5 py-4 bg-cyber-rose/10 hover:bg-cyber-rose text-cyber-rose hover:text-white rounded-2xl transition-all border border-cyber-rose/20 outline-none cursor-pointer"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            </button>
-          </>
-        ) : (
-          <>
-            <button
-              onClick={() => onEdit(employee)}
-              className="flex-1 py-3 bg-cyber-blue/10 hover:bg-cyber-blue text-cyber-blue hover:text-white rounded-2xl transition-all font-bold text-xs uppercase flex items-center justify-center gap-1.5 border border-cyber-blue/20 outline-none cursor-pointer shadow-sm"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-              {t.edit}
-            </button>
-            
-            <button
-              onClick={handleArchive}
-              className="px-4 py-3 bg-cyber-amber/10 hover:bg-cyber-amber text-cyber-amber hover:text-white rounded-xl transition-all text-xs font-bold flex items-center justify-center gap-1.5 border border-cyber-amber/20 outline-none cursor-pointer"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-              </svg>
-              {t.archiveAction}
-            </button>
-            
-            <button
-              onClick={handleDelete}
-              className="px-4 py-3 bg-cyber-rose/10 hover:bg-cyber-rose text-cyber-rose hover:text-white rounded-xl transition-all border border-cyber-rose/20 outline-none cursor-pointer"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            </button>
-          </>
-        )}
-      </div>
+      {((employee.isArchived && canEditArchive) || (!employee.isArchived && canEditManagement)) && (
+        <div className="flex gap-2 pt-6 border-t border-white/5 mt-6 flex-wrap">
+          {employee.isArchived ? (
+            <>
+              <button
+                onClick={handleRestore}
+                className="flex-1 py-3.5 bg-cyber-emerald hover:bg-emerald-600 text-white rounded-2xl transition-all font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 outline-none shadow-lg cursor-pointer"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89M9 11l3-3 3 3" />
+                </svg>
+                {t.restoreAction}
+              </button>
+              <button
+                onClick={handleDelete}
+                className="px-5 py-4 bg-cyber-rose/10 hover:bg-cyber-rose text-cyber-rose hover:text-white rounded-2xl transition-all border border-cyber-rose/20 outline-none cursor-pointer"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => onEdit(employee)}
+                className="flex-1 py-3 bg-cyber-blue/10 hover:bg-cyber-blue text-cyber-blue hover:text-white rounded-2xl transition-all font-bold text-xs uppercase flex items-center justify-center gap-1.5 border border-cyber-blue/20 outline-none cursor-pointer shadow-sm"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                {t.edit}
+              </button>
+              
+              <button
+                onClick={handleArchive}
+                className="px-4 py-3 bg-cyber-amber/10 hover:bg-cyber-amber text-cyber-amber hover:text-white rounded-xl transition-all text-xs font-bold flex items-center justify-center gap-1.5 border border-cyber-amber/20 outline-none cursor-pointer"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                </svg>
+                {t.archiveAction}
+              </button>
+              
+              <button
+                onClick={handleDelete}
+                className="px-4 py-3 bg-cyber-rose/10 hover:bg-cyber-rose text-cyber-rose hover:text-white rounded-xl transition-all border border-cyber-rose/20 outline-none cursor-pointer"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 };
