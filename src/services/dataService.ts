@@ -1,6 +1,6 @@
 import { collection, doc, getDoc, getDocs, setDoc, deleteDoc } from 'firebase/firestore';
 import { db, isPlaceholder } from '../firebaseConfig';
-import type { EmployeeType, ConfigType, UserType } from '../utils/schemas';
+import type { EmployeeType, ConfigType, UserType, LeaveRequestType } from '../utils/schemas';
 
 export interface IDataService {
   getEmployees(): Promise<EmployeeType[]>;
@@ -11,6 +11,9 @@ export interface IDataService {
   getUsers(): Promise<UserType[]>;
   saveUser(user: UserType): Promise<void>;
   deleteUser(id: string): Promise<void>;
+  getLeaveRequests(): Promise<LeaveRequestType[]>;
+  saveLeaveRequest(request: LeaveRequestType): Promise<void>;
+  deleteLeaveRequest(id: string): Promise<void>;
 }
 
 const STORAGE_KEY_DOCS = 'pro_doc_system_v3_data';
@@ -151,6 +154,40 @@ export class LocalStorageDataService implements IDataService {
     const users = this.getLocalUsers().filter(u => u.id !== id);
     this.saveLocalUsers(users);
   }
+
+  private getLocalLeaveRequests(): LeaveRequestType[] {
+    const saved = localStorage.getItem('pro_doc_system_v3_leave_requests');
+    if (!saved) return [];
+    try {
+      return JSON.parse(saved);
+    } catch {
+      return [];
+    }
+  }
+
+  private saveLocalLeaveRequests(requests: LeaveRequestType[]) {
+    localStorage.setItem('pro_doc_system_v3_leave_requests', JSON.stringify(requests));
+  }
+
+  async getLeaveRequests(): Promise<LeaveRequestType[]> {
+    return this.getLocalLeaveRequests();
+  }
+
+  async saveLeaveRequest(request: LeaveRequestType): Promise<void> {
+    const requests = this.getLocalLeaveRequests();
+    const idx = requests.findIndex(r => r.id === request.id);
+    if (idx !== -1) {
+      requests[idx] = request;
+    } else {
+      requests.push(request);
+    }
+    this.saveLocalLeaveRequests(requests);
+  }
+
+  async deleteLeaveRequest(id: string): Promise<void> {
+    const requests = this.getLocalLeaveRequests().filter(r => r.id !== id);
+    this.saveLocalLeaveRequests(requests);
+  }
 }
 
 // 2. Firebase Firestore Production Implementation
@@ -263,6 +300,36 @@ export class FirestoreDataService implements IDataService {
       await deleteDoc(doc(db, 'users', id));
     } catch (err) {
       console.error("Firestore deleteUser error:", err);
+    }
+  }
+
+  async getLeaveRequests(): Promise<LeaveRequestType[]> {
+    try {
+      const querySnapshot = await getDocs(collection(db, 'leave_requests'));
+      const list: LeaveRequestType[] = [];
+      querySnapshot.forEach((doc) => {
+        list.push(doc.data() as LeaveRequestType);
+      });
+      return list;
+    } catch (err) {
+      console.error("Firestore getLeaveRequests error:", err);
+      return [];
+    }
+  }
+
+  async saveLeaveRequest(request: LeaveRequestType): Promise<void> {
+    try {
+      await setDoc(doc(db, 'leave_requests', request.id), request);
+    } catch (err) {
+      console.error("Firestore saveLeaveRequest error:", err);
+    }
+  }
+
+  async deleteLeaveRequest(id: string): Promise<void> {
+    try {
+      await deleteDoc(doc(db, 'leave_requests', id));
+    } catch (err) {
+      console.error("Firestore deleteLeaveRequest error:", err);
     }
   }
 }

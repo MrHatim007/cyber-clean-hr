@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { EmployeeType, ConfigType, LeaveType, BackupType, UserType } from '../utils/schemas';
+import type { EmployeeType, ConfigType, LeaveType, BackupType, UserType, LeaveRequestType } from '../utils/schemas';
 import { dataService, INITIAL_CONFIG } from '../services/dataService';
 
 interface AppState {
@@ -16,6 +16,7 @@ interface AppState {
   highlightedEmployeeId: string | null;
   currentUser: UserType | null;
   users: UserType[];
+  leaveRequests: LeaveRequestType[];
   
   // Actions
   loadData: () => Promise<void>;
@@ -35,6 +36,11 @@ interface AppState {
   deleteUser: (id: string) => Promise<void>;
   updateUser: (id: string, updatedFields: Partial<UserType>) => Promise<void>;
   
+  // Leave Requests Actions
+  addLeaveRequest: (request: Omit<LeaveRequestType, 'id' | 'status' | 'createdAt'>) => Promise<void>;
+  updateLeaveRequestStatus: (id: string, status: 'approved' | 'rejected') => Promise<void>;
+  deleteLeaveRequest: (id: string) => Promise<void>;
+  
   // State setters
   setSearchQuery: (query: string) => void;
   setFilterStatus: (status: string) => void;
@@ -53,7 +59,7 @@ const STORAGE_KEY_SESSION = 'pro_doc_system_v3_session';
 const getInitialTab = (): string => {
   if (typeof window === 'undefined') return 'dashboard';
   const hash = window.location.hash.replace('#/', '');
-  const allowed = ['dashboard', 'management', 'leaves', 'archive', 'settings'];
+  const allowed = ['dashboard', 'management', 'leaves', 'archive', 'settings', 'requests', 'users'];
   return allowed.includes(hash) ? hash : 'dashboard';
 };
 
@@ -71,6 +77,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   highlightedEmployeeId: null,
   currentUser: null,
   users: [],
+  leaveRequests: [],
 
   setPreviewFile: (file) => set({ previewFile: file }),
   setHighlightedEmployeeId: (id) => set({ highlightedEmployeeId: id }),
@@ -81,6 +88,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       const employees = await dataService.getEmployees();
       const config = await dataService.getConfig();
       const users = await dataService.getUsers();
+      const leaveRequests = await dataService.getLeaveRequests();
       
       let currentUser: UserType | null = null;
       const savedSession = localStorage.getItem(STORAGE_KEY_SESSION);
@@ -96,7 +104,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         }
       }
       
-      set({ employees, config, users, currentUser, loading: false });
+      set({ employees, config, users, leaveRequests, currentUser, loading: false });
     } catch {
       set({ loading: false });
     }
@@ -335,6 +343,57 @@ export const useAppStore = create<AppState>((set, get) => ({
         ? 'تم تحديث حساب المستخدم بنجاح!' 
         : 'User account updated successfully!'
     );
+  },
+
+  addLeaveRequest: async (reqData) => {
+    const newReq: LeaveRequestType = {
+      ...reqData,
+      id: 'req_' + Date.now().toString() + Math.random().toString(36).substr(2, 5),
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+    };
+    const updated = [...get().leaveRequests, newReq];
+    set({ leaveRequests: updated });
+    await dataService.saveLeaveRequest(newReq);
+    get().showNotification(get().config.language === 'ar' ? 'تم تقديم طلب الإجازة بنجاح!' : 'Leave request submitted successfully!');
+  },
+
+  updateLeaveRequestStatus: async (id, status) => {
+    let targetReq: LeaveRequestType | null = null;
+    const updatedRequests = get().leaveRequests.map(r => {
+      if (r.id === id) {
+        targetReq = { ...r, status };
+        return targetReq;
+      }
+      return r;
+    });
+
+    if (targetReq) {
+      set({ leaveRequests: updatedRequests });
+      await dataService.saveLeaveRequest(targetReq);
+
+      if (status === 'approved') {
+        const req = targetReq as LeaveRequestType;
+        await get().addLeaveDirectly(req.employeeId, {
+          startDate: req.startDate,
+          endDate: req.endDate,
+          notes: req.notes,
+        });
+      }
+
+      get().showNotification(
+        get().config.language === 'ar'
+          ? (status === 'approved' ? 'تمت الموافقة على الطلب!' : 'تم رفض الطلب!')
+          : (status === 'approved' ? 'Request approved!' : 'Request rejected!')
+      );
+    }
+  },
+
+  deleteLeaveRequest: async (id) => {
+    const updated = get().leaveRequests.filter(r => r.id !== id);
+    set({ leaveRequests: updated });
+    await dataService.deleteLeaveRequest(id);
+    get().showNotification(get().config.language === 'ar' ? 'تم إلغاء الطلب!' : 'Request cancelled!');
   },
 
   setSearchQuery: (query) => set({ searchQuery: query }),

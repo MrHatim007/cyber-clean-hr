@@ -361,7 +361,7 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({ isOpen, onClose, e
                 disabled={!canEditManagement}
                 onClick={e => { try { (e.target as any).showPicker(); } catch (err) {} }}
                 onFocus={e => { try { (e.target as any).showPicker(); } catch (err) {} }}
-                className={`w-full bg-slate-950 border-2 rounded-2xl py-4 px-6 text-sm font-bold text-white focus:border-cyber-blue outline-none transition-all shadow-inner ${errors.startDate ? 'border-cyber-rose' : 'border-slate-900'} disabled:opacity-65 disabled:cursor-not-allowed`}
+                className={`w-full bg-slate-950 border-2 rounded-2xl h-[58px] py-0 px-6 text-sm font-bold text-white focus:border-cyber-blue outline-none transition-all shadow-inner ${errors.startDate ? 'border-cyber-rose' : 'border-slate-900'} disabled:opacity-65 disabled:cursor-not-allowed`}
               />
               {errors.startDate && <span className="text-[10px] text-cyber-rose">{errors.startDate}</span>}
             </div>

@@ -36,6 +36,10 @@ const App: React.FC = () => {
   const highlightedEmployeeId = useAppStore(state => state.highlightedEmployeeId);
   const currentUser = useAppStore(state => state.currentUser);
   const logoutUser = useAppStore(state => state.logoutUser);
+  const leaveRequests = useAppStore(state => state.leaveRequests);
+  const addLeaveRequest = useAppStore(state => state.addLeaveRequest);
+  const updateLeaveRequestStatus = useAppStore(state => state.updateLeaveRequestStatus);
+  const deleteLeaveRequest = useAppStore(state => state.deleteLeaveRequest);
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -50,6 +54,13 @@ const App: React.FC = () => {
   const [leaveEndDate, setLeaveEndDate] = useState('');
   const [leaveNotes, setLeaveNotes] = useState('');
 
+  // Leave Request Form state
+  const [reqEmployeeId, setReqEmployeeId] = useState('');
+  const [reqEmployeeName, setReqEmployeeName] = useState('');
+  const [reqStartDate, setReqStartDate] = useState('');
+  const [reqEndDate, setReqEndDate] = useState('');
+  const [reqNotes, setReqNotes] = useState('');
+
   // Pagination for Employee list
   const [visibleActiveCount, setVisibleActiveCount] = useState(12);
   const [visibleArchivedCount, setVisibleArchivedCount] = useState(12);
@@ -63,7 +74,7 @@ const App: React.FC = () => {
 
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#/', '');
-      const allowed = ['dashboard', 'management', 'leaves', 'archive', 'settings', 'users'];
+      const allowed = ['dashboard', 'management', 'leaves', 'archive', 'settings', 'users', 'requests'];
       if (allowed.includes(hash)) {
         setActiveTab(hash);
       }
@@ -108,6 +119,7 @@ const App: React.FC = () => {
       { id: 'dashboard', permission: 'canViewDashboard' },
       { id: 'management', permission: 'canViewManagement' },
       { id: 'leaves', permission: 'canViewLeaves' },
+      { id: 'requests', permission: 'canViewDashboard' },
       { id: 'archive', permission: 'canViewArchive' },
       { id: 'settings', permission: 'canViewSettings' },
       { id: 'users', permission: 'canViewSettings' },
@@ -294,6 +306,49 @@ const App: React.FC = () => {
     }
   };
 
+  const handleCreateLeaveRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser) return;
+    if (!reqEmployeeId || !reqStartDate || !reqEndDate) {
+      useAppStore.getState().showNotification(
+        config.language === 'ar'
+          ? 'يرجى اختيار الموظف وتحديد تواريخ الإجازة!'
+          : 'Please select an employee and choose leave dates!'
+      );
+      return;
+    }
+
+    if (new Date(reqEndDate) < new Date(reqStartDate)) {
+      useAppStore.getState().showNotification(
+        config.language === 'ar'
+          ? 'تاريخ انتهاء الإجازة لا يمكن أن يسبق تاريخ البدء!'
+          : 'Leave end date cannot be before start date!'
+      );
+      return;
+    }
+
+    await addLeaveRequest({
+      userId: currentUser.id,
+      username: currentUser.username,
+      employeeId: reqEmployeeId,
+      employeeName: reqEmployeeName,
+      startDate: reqStartDate,
+      endDate: reqEndDate,
+      notes: reqNotes,
+    });
+
+    // Reset Form
+    setReqEmployeeId('');
+    setReqEmployeeName('');
+    setReqStartDate('');
+    setReqEndDate('');
+    setReqNotes('');
+  };
+
+  const filteredLeaveRequests = currentUser?.role === 'admin'
+    ? leaveRequests
+    : leaveRequests.filter(r => r.userId === currentUser?.id);
+
   const canEditManagement = currentUser?.role === 'admin' || currentUser?.permissions.canEditManagement;
   const canEditLeaves = currentUser?.role === 'admin' || currentUser?.permissions.canEditLeaves;
 
@@ -367,6 +422,9 @@ const App: React.FC = () => {
               { id: 'leaves', icon: (
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
               ), label: t.leavesTab, permission: 'canViewLeaves' as const },
+              { id: 'requests', icon: (
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+              ), label: t.requestsTab, permission: 'canViewDashboard' as const },
               { id: 'archive', icon: (
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
               ), label: t.archive, permission: 'canViewArchive' as const },
@@ -468,7 +526,7 @@ const App: React.FC = () => {
         <div className="hidden lg:flex items-center justify-between mb-12">
           <div>
             <h1 className="text-4xl font-black text-white tracking-tighter uppercase select-none">
-              {activeTab === 'leaves' ? t.leavesTab : activeTab === 'users' ? t.usersTab : (t[activeTab as keyof typeof t] as string)}
+              {activeTab === 'leaves' ? t.leavesTab : activeTab === 'users' ? t.usersTab : activeTab === 'requests' ? t.requestsTab : (t[activeTab as keyof typeof t] as string)}
             </h1>
             <p className="text-slate-500 font-bold mt-1 select-none">
               {config.language === 'ar'
@@ -864,6 +922,193 @@ const App: React.FC = () => {
                         })
                       ) : (
                         <p className="text-center py-10 text-slate-700 font-bold select-none">{t.noLeaves}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Leave Requests Tab */}
+            <div className={activeTab === 'requests' ? '' : 'hidden'}>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-300">
+                {/* Request Form */}
+                <div className="lg:col-span-1 p-8 bg-white/5 border border-white/10 rounded-[3rem] shadow-xl space-y-6 self-start">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-cyber-blue/15 rounded-2xl text-cyber-blue">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-cyber-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2" />
+                      </svg>
+                    </div>
+                    <h3 className="text-xl font-black text-white select-none">
+                      {t.requestLeaveBtn}
+                    </h3>
+                  </div>
+
+                  <form onSubmit={handleCreateLeaveRequest} className="space-y-4">
+                    {/* Employee Picker */}
+                    <div>
+                      <label className="text-[10px] font-black text-slate-500 uppercase block ml-1 select-none">
+                        {t.holderName}
+                      </label>
+                      <select
+                        required
+                        value={reqEmployeeId}
+                        onChange={e => {
+                          const emp = employees.find(x => x.id === e.target.value);
+                          setReqEmployeeId(e.target.value);
+                          setReqEmployeeName(emp ? emp.employeeName : '');
+                        }}
+                        className="w-full bg-slate-950 border border-slate-900 rounded-2xl py-3.5 px-4 text-xs font-bold text-white focus:border-cyber-blue outline-none transition-all cursor-pointer"
+                      >
+                        <option value="">{config.language === 'ar' ? 'اختر الموظف...' : 'Select Employee...'}</option>
+                        {employees.filter(emp => !emp.isArchived).map(emp => (
+                          <option key={emp.id} value={emp.id}>{emp.employeeName} ({emp.employeeId})</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Start Date */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-slate-500 uppercase block ml-1 select-none">
+                        {config.language === 'ar' ? 'تاريخ البدء' : 'Start Date'}
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        value={reqStartDate}
+                        onChange={e => setReqStartDate(e.target.value)}
+                        onClick={e => { try { (e.target as any).showPicker(); } catch (err) {} }}
+                        onFocus={e => { try { (e.target as any).showPicker(); } catch (err) {} }}
+                        className="w-full bg-slate-950 border border-slate-900 rounded-2xl h-[58px] py-0 px-4 text-xs font-bold text-white focus:border-cyber-blue outline-none transition-all"
+                      />
+                    </div>
+
+                    {/* End Date */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-slate-500 uppercase block ml-1 select-none">
+                        {config.language === 'ar' ? 'تاريخ الانتهاء' : 'End Date'}
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        value={reqEndDate}
+                        onChange={e => setReqEndDate(e.target.value)}
+                        onClick={e => { try { (e.target as any).showPicker(); } catch (err) {} }}
+                        onFocus={e => { try { (e.target as any).showPicker(); } catch (err) {} }}
+                        className="w-full bg-slate-950 border border-slate-900 rounded-2xl h-[58px] py-0 px-4 text-xs font-bold text-white focus:border-cyber-blue outline-none transition-all"
+                      />
+                    </div>
+
+                    {/* Notes */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-slate-500 uppercase block ml-1 select-none">
+                        {config.language === 'ar' ? 'السبب / الملاحظات' : 'Reason / Notes'}
+                      </label>
+                      <input
+                        type="text"
+                        value={reqNotes}
+                        onChange={e => setReqNotes(e.target.value)}
+                        placeholder="..."
+                        className="w-full bg-slate-950 border border-slate-900 rounded-2xl py-3.5 px-4 text-xs font-bold text-white focus:border-cyber-blue outline-none transition-all"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full py-4 bg-cyber-blue hover:bg-cyan-500 text-slate-950 font-black rounded-2xl shadow-xl shadow-cyber-blue/10 transition-all text-xs uppercase tracking-wider cursor-pointer outline-none"
+                    >
+                      {t.submitRequest}
+                    </button>
+                  </form>
+                </div>
+
+                {/* Requests List */}
+                <div className="lg:col-span-2 space-y-6">
+                  <div className="p-8 bg-white/5 border border-white/10 rounded-[3rem] shadow-xl space-y-6">
+                    <h3 className="text-lg font-black text-white flex items-center gap-2 select-none">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-cyber-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                      </svg>
+                      {currentUser?.role === 'admin' ? t.allRequests : t.myRequests}
+                    </h3>
+
+                    <div className="space-y-4 max-h-[500px] overflow-y-auto pr-1 custom-scrollbar">
+                      {filteredLeaveRequests.length > 0 ? (
+                        filteredLeaveRequests.map(req => {
+                          const duration = getDaysBetween(req.startDate, req.endDate);
+                          const isPending = req.status === 'pending';
+                          const isUserReq = req.userId === currentUser?.id;
+
+                          return (
+                            <div key={req.id} className="p-5 bg-slate-950/40 border border-white/5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                              <div className="space-y-1.5">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <h4 className="text-sm font-black text-white">{req.employeeName}</h4>
+                                  <span className="px-2.5 py-0.5 rounded-lg bg-cyber-blue/15 border border-cyber-blue/20 text-[10px] text-cyber-blue font-bold">
+                                    {duration} {t.days}
+                                  </span>
+                                  <span className={`px-2.5 py-0.5 rounded-lg text-[10px] font-bold ${
+                                    req.status === 'pending'
+                                      ? 'bg-cyber-amber/10 border border-cyber-amber/20 text-cyber-amber'
+                                      : req.status === 'approved'
+                                      ? 'bg-cyber-emerald/10 border border-cyber-emerald/20 text-cyber-emerald'
+                                      : 'bg-cyber-rose/10 border border-cyber-rose/20 text-cyber-rose'
+                                  }`}>
+                                    {req.status === 'pending' ? t.statusPending : req.status === 'approved' ? t.statusApproved : t.statusRejected}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-slate-400 font-bold">
+                                  {req.notes || (config.language === 'ar' ? 'لا توجد ملاحظات' : 'No notes')}
+                                </p>
+                                <div className="text-[10px] text-slate-500 flex gap-4 font-mono select-all flex-wrap">
+                                  <span>{config.language === 'ar' ? 'بواسطة' : 'By'}: {req.username}</span>
+                                  <span>{config.language === 'ar' ? 'من' : 'From'}: {req.startDate}</span>
+                                  <span>{config.language === 'ar' ? 'إلى' : 'To'}: {req.endDate}</span>
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center gap-2 select-none sm:self-center">
+                                {/* Admin actions */}
+                                {currentUser?.role === 'admin' && isPending && (
+                                  <>
+                                    <button
+                                      onClick={() => updateLeaveRequestStatus(req.id, 'approved')}
+                                      className="px-3.5 py-2 text-xs font-black bg-cyber-emerald/10 hover:bg-cyber-emerald text-cyber-emerald hover:text-white rounded-xl border border-cyber-emerald/20 hover:border-cyber-emerald/30 transition-all cursor-pointer outline-none"
+                                    >
+                                      {t.approve}
+                                    </button>
+                                    <button
+                                      onClick={() => updateLeaveRequestStatus(req.id, 'rejected')}
+                                      className="px-3.5 py-2 text-xs font-black bg-cyber-rose/10 hover:bg-cyber-rose text-cyber-rose hover:text-white rounded-xl border border-cyber-rose/20 hover:border-cyber-rose/30 transition-all cursor-pointer outline-none"
+                                    >
+                                      {t.reject}
+                                    </button>
+                                  </>
+                                )}
+
+                                {/* User actions (delete pending) */}
+                                {(currentUser?.role === 'admin' || (isUserReq && isPending)) && (
+                                  <button
+                                    onClick={() => {
+                                      if (window.confirm(t.requestDeleteConfirm)) {
+                                        deleteLeaveRequest(req.id);
+                                      }
+                                    }}
+                                    className="p-2 bg-cyber-rose/10 hover:bg-cyber-rose text-cyber-rose hover:text-white rounded-xl transition-all cursor-pointer border border-cyber-rose/10 outline-none"
+                                    title={config.language === 'ar' ? 'حذف / إلغاء' : 'Delete / Cancel'}
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <p className="text-center py-10 text-slate-700 font-bold select-none">{t.noData}</p>
                       )}
                     </div>
                   </div>

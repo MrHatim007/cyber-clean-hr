@@ -64,9 +64,23 @@ export const UserSchema = z.object({
   permissions: UserPermissionsSchema,
 });
 
+export const LeaveRequestSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  username: z.string(),
+  employeeId: z.string(),
+  employeeName: z.string(),
+  startDate: z.string().min(1, 'Start date is required'),
+  endDate: z.string().min(1, 'End date is required'),
+  notes: z.string().optional().default(''),
+  status: z.enum(['pending', 'approved', 'rejected']).default('pending'),
+  createdAt: z.string(),
+});
+
 export type DocumentType = z.infer<typeof DocumentSchema>;
 export type LeaveType = z.infer<typeof LeaveSchema>;
 export type EmployeeType = z.infer<typeof EmployeeSchema>;
 export type ConfigType = z.infer<typeof ConfigSchema>;
 export type BackupType = z.infer<typeof BackupSchema>;
 export type UserType = z.infer<typeof UserSchema>;
+export type LeaveRequestType = z.infer<typeof LeaveRequestSchema>;
